@@ -26,7 +26,6 @@ local PetEggData = require(Data:WaitForChild("PetEggData"))
 local MutationHandler = require(Modules:WaitForChild("MutationHandler"))
 local SeedData = require(Data:WaitForChild("SeedData"))
 
-
 -- Auto Buy Variables
 local SeedShop = PlayerGui:WaitForChild("Seed_Shop")
 local SeedShopScrollingFrame = SeedShop:WaitForChild("Frame"):WaitForChild("ScrollingFrame")
@@ -85,6 +84,8 @@ local configs = {
     AlwaysShowHoney = false,
     ToggleGearTP = false,
     TogglePetsTP = false,
+
+    WaitTime = 10,
 }
 
 -- Gui Variables
@@ -433,10 +434,10 @@ local function AddGuiPage(PageName)
 end
 
 -- Creates a new Frame Instance meant to hold a button, dropdown, or other interactive feature
-local function CreateFeatureHolder(Page, ObjectName, PositionCount)
+local function CreateFeatureHolder(Page, ObjectName, NewParent, PositionCount)
     local NewHolder = Instance.new("Frame")
     NewHolder.Name = ObjectName
-    NewHolder.Parent = Page.ScrollingFrame.LeftOptions
+    NewHolder.Parent = NewParent
     NewHolder.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     NewHolder.BackgroundTransparency = 1.000
     NewHolder.BorderColor3 = Color3.fromRGB(0, 0, 0)
@@ -447,14 +448,12 @@ local function CreateFeatureHolder(Page, ObjectName, PositionCount)
     return NewHolder
 end
 
-local function 
-
 -- Function For Adding A Toggle to the Leftside of the Page
 local function AddPageLeftOptionToggle(Page, ToggleName, Function, ConfigKeyValue, RequiresCoroutine)
     local LeftOptionCount = tonumber(Page:GetAttribute("LeftCount"))
     
     -- Frame to Hold Contents
-    local ToggleHolder = CreateFeatureHolder(Page, "ToggleHolder", LeftOptionCount)
+    local ToggleHolder = CreateFeatureHolder(Page, "ToggleHolder", Page.ScrollingFrame.LeftOptions, LeftOptionCount)
 
     -- Red/Green Toggle Indicator
     local Frame = Instance.new("Frame")
@@ -531,7 +530,7 @@ local function AddPageRightOptionDropdown(Page, DropdownName, DropdownArray, Con
     local ButtonHolder = {}
     local TempCount = 0
 
-    local DropdownHolder = CreateFeatureHolder(Page, "DropdownHolder", RightOptionCount)
+    local DropdownHolder = CreateFeatureHolder(Page, "DropdownHolder", Page.ScrollingFrame.RightOptions, RightOptionCount)
 
     local TextButton = Instance.new("TextButton")
     TextButton.Parent = DropdownHolder
@@ -686,8 +685,9 @@ local function AddPageRightOptionTextbox(Page, NewPlaceholderText, ConfigKey)
     local RightOptionCount = tonumber(Page:GetAttribute("RightCount"))
     -- ButtonHolder stores a reference to all of the buttons added in this dropdown
 
-    local DropdownHolder = CreateFeatureHolder(Page, "DropdownHolder", RightOptionCount)
+    local DropdownHolder = CreateFeatureHolder(Page, "DropdownHolder", Page.ScrollingFrame.RightOptions, RightOptionCount)
 
+    local TextBox = Instance.new("TextBox")
     TextBox.Parent = DropdownHolder
     TextBox.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     TextBox.BorderColor3 = Color3.fromRGB(0, 0, 0)
@@ -761,7 +761,7 @@ local AutoBuySeedShopFunction = function()
             end
             wait(0.1)
         end
-        WaitTime = 10
+        WaitTime = configs.WaitTime
     end
 end
 
@@ -792,7 +792,7 @@ local AutoBuyGearShopFunction = function()
             end
             wait(0.1)
         end
-        WaitTime = 10
+        WaitTime = configs.WaitTime
     end
 end
 
@@ -857,7 +857,7 @@ local AutoBuyEggsFunction = function()
                 break
             end
         end
-        WaitTime = 10
+        WaitTime = configs.WaitTime
     end
 end
 
@@ -906,7 +906,7 @@ local AutoBuyCosmeticsFunction = function()
         LoopCosmeticLayer(CosmeticShopTopSegment)
         LoopCosmeticLayer(CosmeticShopBottomSegment)
 
-        WaitTime = 10
+        WaitTime = configs.WaitTime
     end
 end
 
@@ -1139,18 +1139,24 @@ end
 
 local function PlantSeed(Seed, Location)
     print("Planted " .. Seed)
+    Plant_RE:FireServer(Location, Seed)
     wait(0.1)
 end
 
 local AutoPlantFunction = function()
-    for i, v in pairs(configs.AutoPlantAllowedSeeds) do
-        if v then
-            local SeedInBackback = FindSeedInBackpack(i)
-            if SeedInBackback then
-                EquipFromBackpack(SeedInBackback)
-                PlantSeed(i, GetAutoPlantCenter())
+    local WaitTime = 0.001
+    while wait(WaitTime) do
+        for i, v in pairs(configs.AutoPlantAllowedSeeds) do
+            if v then
+                local SeedInBackback = FindSeedInBackpack(i)
+                if SeedInBackback then
+                    EquipFromBackpack(SeedInBackback)
+                    wait(3)
+                    PlantSeed(i, GetAutoPlantCenter())
+                end
             end
         end
+        WaitTime = configs.WaitTime
     end
 end
 
@@ -1266,6 +1272,7 @@ GetMutationsArray()
 -- AddGuiPage(string : PageName)
 -- AddPageLeftOptionToggle(GuiPageObject : Page, string : ButtonName, function : FunctionToRun, string : ConfigName, bool : NeedsCoroutine?)
 -- NeedsCoroutine? true means the function is a looping function and will be created on a new coroutine
+--                 false means the function is a normal toggle, one time execution per enable and disable
 
 local AutoBuyPage = AddGuiPage("Auto Buy")
 local FarmPage = AddGuiPage("Farm")
@@ -1286,6 +1293,7 @@ AddPageLeftOptionToggle(AutoBuyPage, "Cosmetic Shop", AutoBuyCosmeticsFunction, 
 AddPageRightOptionDropdown(AutoBuyPage, "Cosmetics", GetAllPossibleCosmeticItemsArray(), configs.CosmeticShopFilter, Color3.fromRGB(0, 255, 0))
 
 AddPageLeftOptionToggle(FarmPage, "Auto Collect", AutoCollectFruitsFunction, "AutoCollect", true)
+AddPageLeftEmpty(FarmPage)
 AddPageLeftEmpty(FarmPage)
 AddPageLeftEmpty(FarmPage)
 AddPageLeftEmpty(FarmPage)
