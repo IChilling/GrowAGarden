@@ -1,11 +1,33 @@
+-- Services
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local VirtualUserService = game:GetService("VirtualUser")
 local UserInputService = game:GetService("UserInputService")
 local GuiService = game:GetService("GuiService")
 local RunService = game:GetService("RunService")
 
+-- Data Arrays
+local CoroutineArray = {}
+local MutationsArray = {}
+local SeedsArray = {}
+
+-- Local Player
 local lp = game.Players.LocalPlayer
 local PlayerGui = lp:WaitForChild("PlayerGui")
+
+-- General Variables
+local Data = ReplicatedStorage:WaitForChild("Data")
+local Modules = ReplicatedStorage:WaitForChild("Modules")
+
+-- Modular Scripts
+local CalculatePlantValue = require(Modules:WaitForChild("CalculatePlantValue"))
+local CosmeticCrateShopData = require(Data:WaitForChild("CosmeticCrateShopData"))
+local CosmeticItemShopData = require(Data:WaitForChild("CosmeticItemShopData"))
+local PetEggData = require(Data:WaitForChild("PetEggData"))
+local MutationHandler = require(Modules:WaitForChild("MutationHandler"))
+local SeedData = require(Data:WaitForChild("SeedData"))
+
+
+-- Auto Buy Variables
 local SeedShop = PlayerGui:WaitForChild("Seed_Shop")
 local SeedShopScrollingFrame = SeedShop:WaitForChild("Frame"):WaitForChild("ScrollingFrame")
 local BuySeedStock = ReplicatedStorage.GameEvents.BuySeedStock
@@ -15,11 +37,7 @@ local BuyGearStock = ReplicatedStorage.GameEvents.BuyGearStock
 local NPCS = game.Workspace:WaitForChild("NPCS")
 local PetStand = NPCS:WaitForChild("Pet Stand")
 local EggLocations = PetStand:WaitForChild("EggLocations")
-local Data = ReplicatedStorage:WaitForChild("Data")
-local PetEggDataMod = require(Data:WaitForChild("PetEggData"))
 local BuyPetEgg = ReplicatedStorage.GameEvents.BuyPetEgg
-local CosmeticCrateShopDataMod = require(Data:WaitForChild("CosmeticCrateShopData"))
-local CosmeticItemShopDataMod = require(Data:WaitForChild("CosmeticItemShopData"))
 local CosmeticShopUI = PlayerGui:WaitForChild("CosmeticShop_UI")
 local CosmeticShopContentFrame = CosmeticShopUI:WaitForChild("CosmeticShop"):WaitForChild("Main"):WaitForChild("Holder"):WaitForChild("Shop"):WaitForChild("ContentFrame")
 local CosmeticShopTopSegment = CosmeticShopContentFrame:WaitForChild("TopSegment")
@@ -27,12 +45,24 @@ local CosmeticShopBottomSegment = CosmeticShopContentFrame:WaitForChild("BottomS
 local BuyCosmeticItem = ReplicatedStorage.GameEvents.BuyCosmeticItem
 local BuyCosmeticCrate = ReplicatedStorage.GameEvents.BuyCosmeticCrate
 
+-- Farm Variables
+local FarmFolder
+local FarmsFolder = game.Workspace:WaitForChild("Farm")
+local FruitMutationsUI = lp.PlayerGui.FruitMutation_UI
+local FruitName  = FruitMutationsUI.Frame.FruitName
+local FruitMutation = FruitMutationsUI.Frame.FruitMutation
+local Plant_RE = ReplicatedStorage.GameEvents.Plant_RE
+
+-- Visual Variables
+local HoneyUI = PlayerGui:WaitForChild("Honey_UI"):WaitForChild("Frame")
+local GearTPUI = PlayerGui:WaitForChild("Teleport_UI"):WaitForChild("Frame"):WaitForChild("Gear")
+local PetsTPUI = PlayerGui:WaitForChild("Teleport_UI"):WaitForChild("Frame"):WaitForChild("Pets")
+
 local mouse = lp:GetMouse()
 local centerX = mouse.ViewSizeX / 2
 local centerY = mouse.ViewSizeY / 2
 
-local CoroutineArray = {}
-
+-- Config Table
 local configs = {
     AutoBuySeedShop = false,
     SeedShopFilter = {},
@@ -42,11 +72,92 @@ local configs = {
     EggShopFilter = {},
     AutoBuyCosmeticShop = false,
     CosmeticShopFilter = {},
+
+    AutoCollect = false,
+    AutoCollectBlockedPlants = {},
+    AutoCollectBlockedVariants = {},
+    AutoCollectBlockedMutations = {},
+    AutoCollectMinimumValue = 0,
+    AutoCollectMinimumWeight = 0,
+    AutoPlant = false,
+    AutoPlantAllowedSeeds = {},
+
+    AlwaysShowHoney = false,
+    ToggleGearTP = false,
+    TogglePetsTP = false,
 }
 
+-- Gui Variables
 local ActivePage = nil
 local PageCount = 0
 local ActiveDropDown = nil
+
+-- Utility Functions --
+
+-- Returns:
+--      true if valid local player character is found
+-- Description:
+--      Gets the local player's RootPart and Humanoid
+
+local rootpart
+local humanoid
+local function GetPlayer()
+    if lp.Character and lp.Character:FindFirstChild("Humanoid") and lp.Character:FindFirstChild("HumanoidRootPart") then
+        rootpart = lp.Character.HumanoidRootPart
+        humanoid = lp.Character.Humanoid
+        return true
+    end
+	warn("Unable to Find Player in GetPlayer()")
+    return false
+end
+
+-- Returns:
+--      true if valid local player character is found
+-- Description:
+--      Checks for valid local player character for 15 minutes
+
+local function WaitForPlayer()
+	local loopcount = 0
+	while true do
+		wait(1)
+        print("Searching For Player Character, Humanoid, and HumanoidRootPart")
+            
+        local char = lp.Character
+        if char and char:FindFirstChild("Humanoid") and char.Humanoid.Health > 0 and char:FindFirstChild("HumanoidRootPart") then
+            rootpart = lp.Character.HumanoidRootPart
+            humanoid = lp.Character.Humanoid
+            break
+        end
+
+        if loopcount > 60*15 then
+            warn("Waited Fifteen Minutes and Could Not Find Player, Closing Script, please try re-executing.")
+            break
+        end
+		loopcount = loopcount + 1
+	end
+
+	return rootpart ~= nil and humanoid ~= nil
+end
+
+-- Parameters: 
+--      player: game.Players.NAME reference
+-- Returns:
+--      farm folder/directory or nil
+-- Description:
+--      Loops through all Farms and returns the Farm Folder with matching player name
+
+local function GetPlayerFarm(player)
+    for _, farm in pairs(FarmsFolder:GetChildren()) do
+        local ImportantFolder = farm:FindFirstChild("Important")
+        local DataFolder = ImportantFolder:FindFirstChild("Data")
+        
+		if DataFolder.Owner.Value == player.Name then
+            FarmFolder = farm
+            return true
+        end
+    end
+    return false
+end
 
 -- GUI Instances:
 
@@ -194,7 +305,7 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
-TabBar_Exit.MouseButton1Down:Connect(function()
+local function CloseScript()
     -- End Coroutines
     for i, v in pairs(CoroutineArray) do
         if v then
@@ -204,6 +315,10 @@ TabBar_Exit.MouseButton1Down:Connect(function()
 
     ScreenGui:Destroy()
     script:Destroy()
+end
+
+TabBar_Exit.MouseButton1Down:Connect(function()
+    CloseScript()
 end)
 
 TabBar_Minimize.MouseButton1Down:Connect(function()
@@ -317,20 +432,29 @@ local function AddGuiPage(PageName)
     return Page
 end
 
+-- Creates a new Frame Instance meant to hold a button, dropdown, or other interactive feature
+local function CreateFeatureHolder(Page, ObjectName, PositionCount)
+    local NewHolder = Instance.new("Frame")
+    NewHolder.Name = ObjectName
+    NewHolder.Parent = Page.ScrollingFrame.LeftOptions
+    NewHolder.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    NewHolder.BackgroundTransparency = 1.000
+    NewHolder.BorderColor3 = Color3.fromRGB(0, 0, 0)
+    NewHolder.BorderSizePixel = 0
+    NewHolder.Size = UDim2.new(1, 0, 0, 40)
+    NewHolder.ZIndex = 9999 - PositionCount
+    NewHolder.Position = UDim2.new(0, 0, 0, 40 * PositionCount) -- Position Properly
+    return NewHolder
+end
+
+local function 
+
 -- Function For Adding A Toggle to the Leftside of the Page
-local function AddPageLeftOptionToggle(Page, ToggleName, Function, ConfigKeyValue)
+local function AddPageLeftOptionToggle(Page, ToggleName, Function, ConfigKeyValue, RequiresCoroutine)
     local LeftOptionCount = tonumber(Page:GetAttribute("LeftCount"))
     
     -- Frame to Hold Contents
-    local ToggleHolder = Instance.new("Frame")
-    ToggleHolder.Name = "ToggleHolder"
-    ToggleHolder.Parent = Page.ScrollingFrame.LeftOptions
-    ToggleHolder.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    ToggleHolder.BackgroundTransparency = 1.000
-    ToggleHolder.BorderColor3 = Color3.fromRGB(0, 0, 0)
-    ToggleHolder.BorderSizePixel = 0
-    ToggleHolder.Size = UDim2.new(1, 0, 0, 40)
-    ToggleHolder.Position = UDim2.new(0, 0, 0, 40 * LeftOptionCount) -- Position Properly
+    local ToggleHolder = CreateFeatureHolder(Page, "ToggleHolder", LeftOptionCount)
 
     -- Red/Green Toggle Indicator
     local Frame = Instance.new("Frame")
@@ -363,44 +487,51 @@ local function AddPageLeftOptionToggle(Page, ToggleName, Function, ConfigKeyValu
     -- Increment Page Left Options Count Attribute by 1
     Page:SetAttribute("LeftCount", tonumber(Page:GetAttribute("LeftCount")) + 1)
 
-    local NewCoroutine = nil
-    TextButton.MouseButton1Down:Connect(function()
-        if NewCoroutine then
-            Frame.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-            configs[ConfigKeyValue] = false
+    if RequiresCoroutine then
+        local NewCoroutine = nil
+        TextButton.MouseButton1Down:Connect(function()
+            if NewCoroutine then
+                Frame.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+                configs[ConfigKeyValue] = false
 
-            RemoveCoroutine(NewCoroutine)
-            NewCoroutine = nil
-        else
-            Frame.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-            configs[ConfigKeyValue] = true
+                RemoveCoroutine(NewCoroutine)
+                NewCoroutine = nil
+            else
+                Frame.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+                configs[ConfigKeyValue] = true
 
-            NewCoroutine = coroutine.create(Function)
-            success = coroutine.resume(NewCoroutine)
-            table.insert(CoroutineArray, NewCoroutine)
-        end
-    end)
+                NewCoroutine = coroutine.create(Function)
+                success = coroutine.resume(NewCoroutine)
+                table.insert(CoroutineArray, NewCoroutine)
+            end
+        end)
+    else
+        TextButton.MouseButton1Down:Connect(function()
+            if configs[ConfigKeyValue] then
+                Frame.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+                configs[ConfigKeyValue] = false
+
+                Function()
+            else
+                Frame.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+                configs[ConfigKeyValue] = true
+
+                Function()
+            end
+        end)
+    end
 
     return ToggleHolder
 end
 
 -- Function For Adding A Dropdown to the Rightside of the Page
-local function AddPageRightOptionDropdown(Page, DropdownName, Array, ConfigArray)
+local function AddPageRightOptionDropdown(Page, DropdownName, DropdownArray, ConfigArray, TextColor)
     local RightOptionCount = tonumber(Page:GetAttribute("RightCount"))
     -- ButtonHolder stores a reference to all of the buttons added in this dropdown
     local ButtonHolder = {}
     local TempCount = 0
 
-    local DropdownHolder = Instance.new("Frame")
-    DropdownHolder.Name = "DropdownHolder"
-    DropdownHolder.Parent = Page.ScrollingFrame.RightOptions
-    DropdownHolder.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    DropdownHolder.BackgroundTransparency = 1.000
-    DropdownHolder.BorderColor3 = Color3.fromRGB(0, 0, 0)
-    DropdownHolder.BorderSizePixel = 0
-    DropdownHolder.Size = UDim2.new(0.967071235, 0, 0, 40)
-    DropdownHolder.ZIndex = 9999 - RightOptionCount
-    DropdownHolder.Position = UDim2.new(0, 0, 0, 40 * RightOptionCount) -- Position Properly
+    local DropdownHolder = CreateFeatureHolder(Page, "DropdownHolder", RightOptionCount)
 
     local TextButton = Instance.new("TextButton")
     TextButton.Parent = DropdownHolder
@@ -469,7 +600,7 @@ local function AddPageRightOptionDropdown(Page, DropdownName, Array, ConfigArray
     Page:SetAttribute("RightCount", tonumber(Page:GetAttribute("RightCount")) + 1)
 
     -- Adding A Select/Deselect All Button First, only for larger arrays
-    if #Array > 5 then
+    if #DropdownArray > 5 then
         local SelectAllButton = Instance.new("TextButton")
         SelectAllButton.Parent = ScrollingFrame
         SelectAllButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
@@ -493,6 +624,7 @@ local function AddPageRightOptionDropdown(Page, DropdownName, Array, ConfigArray
                     Deselect = true
                 end
             end
+
             if Deselect then
                 for _, Button in pairs(ButtonHolder) do
                     ConfigArray[tostring(Button.Text)] = false
@@ -502,7 +634,7 @@ local function AddPageRightOptionDropdown(Page, DropdownName, Array, ConfigArray
             end
             for _, Button in pairs(ButtonHolder) do
                 ConfigArray[tostring(Button.Text)] = true
-                Button.TextColor3 = Color3.fromRGB(0, 255, 0)
+                Button.TextColor3 = TextColor
             end
             return
         end)
@@ -511,7 +643,7 @@ local function AddPageRightOptionDropdown(Page, DropdownName, Array, ConfigArray
     end
 
     -- Add Options Inside Dropdown
-    for i, v in pairs(Array) do
+    for i, v in pairs(DropdownArray) do
         local NewButton = Instance.new("TextButton")
         NewButton.Parent = ScrollingFrame
         NewButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
@@ -535,7 +667,7 @@ local function AddPageRightOptionDropdown(Page, DropdownName, Array, ConfigArray
                 NewButton.TextColor3 = Color3.fromRGB(0, 0, 0)
             else
                 ConfigArray[ButtonName] = true
-                NewButton.TextColor3 = Color3.fromRGB(0, 255, 0)
+                NewButton.TextColor3 = TextColor
             end
         end)
 
@@ -548,6 +680,59 @@ local function AddPageRightOptionDropdown(Page, DropdownName, Array, ConfigArray
 
     return DropdownHolder
 end
+
+-- Function For Adding A Textbox to the Rightside of the Page
+local function AddPageRightOptionTextbox(Page, NewPlaceholderText, ConfigKey)
+    local RightOptionCount = tonumber(Page:GetAttribute("RightCount"))
+    -- ButtonHolder stores a reference to all of the buttons added in this dropdown
+
+    local DropdownHolder = CreateFeatureHolder(Page, "DropdownHolder", RightOptionCount)
+
+    TextBox.Parent = DropdownHolder
+    TextBox.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    TextBox.BorderColor3 = Color3.fromRGB(0, 0, 0)
+    TextBox.BorderSizePixel = 0
+    TextBox.Position = UDim2.new(0, 0, 0, 0)
+    TextBox.Size = UDim2.new(1, 0, 0.75, 0)
+    TextBox.Font = Enum.Font.SourceSans
+    TextBox.PlaceholderColor3 = Color3.fromRGB(0, 0, 0)
+    TextBox.PlaceholderText = NewPlaceholderText
+    TextBox.Text = ""
+    TextBox.TextColor3 = Color3.fromRGB(0, 0, 0)
+    TextBox.TextSize = 14.000
+    TextBox.ZIndex = 2
+
+    local UICorner = Instance.new("UICorner")
+    UICorner.Parent = TextBox
+
+    TextBox:GetPropertyChangedSignal("Text"):Connect(function()
+        local newText = TextBox.Text
+        -- Remove any non-digit characters
+        local numericText = newText:gsub("%D", "")
+        if newText ~= numericText then
+            TextBox.Text = numericText
+        end
+
+        configs[ConfigKey] = tonumber(TextBox.Text)
+    end)
+
+    -- Increment Page Right Options Count Attribute by 1
+    Page:SetAttribute("RightCount", tonumber(Page:GetAttribute("RightCount")) + 1)
+
+    return DropdownHolder
+end
+
+local function AddPageRightEmpty(Page)
+    -- Increment Page Right Options Count Attribute by 1
+    Page:SetAttribute("RightCount", tonumber(Page:GetAttribute("RightCount")) + 1)
+end
+
+local function AddPageLeftEmpty(Page)
+    -- Increment Page Right Options Count Attribute by 1
+    Page:SetAttribute("LeftCount", tonumber(Page:GetAttribute("LeftCount")) + 1)
+end
+
+-- AutoBuy Features
 
 -- Function For Automatically Purchasing Seeds from the Seed Shop
 -- Only Buys Selected Seeds
@@ -611,6 +796,26 @@ local AutoBuyGearShopFunction = function()
     end
 end
 
+-- Table Utilities --
+
+local function PrintArray(array)
+    local _string = ""
+    for i, v in pairs(array) do
+        _string = _string .. v .. ", "
+    end
+    print(string.sub(_string, 0, -3))
+end
+
+-- Adds possible duplicate keys to table by incrementing key by 1
+-- until the table slot is nil
+local function AddToTable_PossibleDuplicate(Table, key, object)
+    local PriceOffset = 0
+    while Table[object.Price + PriceOffset] do
+        PriceOffset = PriceOffset + 1
+    end
+    Table[object.Price + PriceOffset] = tostring(key)
+end
+
 -- Given an array with unordered integer keys, sorts keys and then sorts array
 local function SortArray(Array)
     local SortedArray = {}
@@ -625,6 +830,361 @@ local function SortArray(Array)
         table.insert(SortedArray, Array[key])
     end
     return SortedArray
+end
+
+-- Features --
+
+-- Buys all 3 eggs in shop
+local function BuyAllEggs()
+    for i=1, 3 do
+        BuyPetEgg:FireServer(i)
+        wait(0.1)
+    end
+end
+
+-- Loops and Checks if Any of the Eggs are Selected
+-- Grabs all eggs even if only 1 is correct
+local AutoBuyEggsFunction = function()
+    local WaitTime = 0.001
+    while wait(WaitTime) do
+        if not configs.AutoBuyEggShop then return end
+
+        for _, object in pairs(EggLocations:GetChildren()) do
+            if configs.EggShopFilter[tostring(object.Name)] then
+                print(object.Name .. " Found!")
+                print("Buying All Eggs")
+                BuyAllEggs()
+                break
+            end
+        end
+        WaitTime = 10
+    end
+end
+
+-- Function for properly collecting crates and other cosmetic items
+-- since they require different remote events
+local function PurchaseCosmetic(ItemName)
+    if ItemName:find("Crate") then
+        print("Crate")
+        BuyCosmeticCrate:FireServer(ItemName)
+        return
+    end
+    print("Other Item")
+    BuyCosmeticItem:FireServer(ItemName)
+    return
+end
+
+-- Function that loops the 2 cosmetic shop layers
+-- Checks stock and purchases if in stock and selected
+local function LoopCosmeticLayer(Layer)
+    for _, object in pairs(Layer:GetChildren()) do
+        if object:FindFirstChild("Main") then
+            local ItemName = object.Name
+            if not configs.CosmeticShopFilter[ItemName] then
+                continue
+            end
+            local InStock = (object.Main.Stock.STOCK_TEXT.Text ~= "X0 Stock")
+            if InStock then
+                local ItemStock = object.Main.Stock.STOCK_TEXT.Text:match("%d+")
+                print("Purchasing " .. tostring(ItemStock) .. " of " .. ItemName)
+                for i = 1, ItemStock do
+                    wait(0.1)
+                    PurchaseCosmetic(ItemName)
+                end
+            end
+        end
+        wait(0.1)
+    end
+end
+
+-- Function that loops the cosmetics auto buy
+local AutoBuyCosmeticsFunction = function()
+    local WaitTime = 0.001
+    while wait(WaitTime) do
+        if not configs.AutoBuyCosmeticShop then return end
+
+        LoopCosmeticLayer(CosmeticShopTopSegment)
+        LoopCosmeticLayer(CosmeticShopBottomSegment)
+
+        WaitTime = 10
+    end
+end
+
+-- Farm Features
+
+-- Parameters: 
+--      fruit: A fruit object
+-- Returns:
+--      ProximityPrompt object or nil
+-- Description:
+--      Loops through Descendants of given fruit object and returns the ProximityPrompt object
+
+local function GetFruitProximityPrompt(fruit)
+	for _, object in pairs(fruit:GetDescendants()) do
+		if object.ClassName == "ProximityPrompt" then
+			return object
+		end
+	end
+	return nil
+end
+
+-- Parameters: 
+--      InputString: a raw mutations string
+-- Returns:
+--      Neatly formatted mutations string and mutations array
+-- Description:
+--      Uses regex to target patterns that, start with a capital, contain only letters, and
+--      have more than one lowercase trailing character
+
+local function ParseMutations(InputString)
+	local MutationsString = ""
+	local MutationsArray = {}
+	for word in string.gmatch(InputString, "%f[%a]%u%l+") do
+		table.insert(MutationsArray, word)
+		MutationsString = MutationsString .. " " .. word
+	end
+
+	return MutationsString, MutationsArray
+end
+
+-- Parameters: 
+--      object: any object
+-- Returns:
+--      N/A
+-- Description:
+--      Destroys all child ParticleEmitters and other effects
+
+local function DestroyEmitters(object)
+    for _, child in pairs(object:GetChildren()) do
+		if child.ClassName == "ParticleEmitter" then
+			child:Destroy()
+		end
+		if child.Name == "FrozenShell" then
+			child:Destroy()
+		end
+	end
+end
+
+-- Parameters: 
+--      object: any object
+-- Returns:
+--      N/A
+-- Description:
+--      Restores disabled effects
+
+local function EnableEffects(object)
+	for _, child in pairs(object:GetChildren()) do
+		if child.ClassName == "ParticleEmitter" then
+			child.Enabled = true
+		end
+		if child.Name == "FrozenShell" then
+			child.Transparency = 0.5
+		end
+	end
+end
+
+-- Parameters: 
+--      object: any object
+-- Returns:
+--      N/A
+-- Description:
+--      Disables effects
+
+local function DisableEffects(object)
+	for _, child in pairs(object:GetChildren()) do
+		if child.ClassName == "ParticleEmitter" then
+			child.Enabled = false
+		end
+		if child.Name == "FrozenShell" then
+			child.Transparency = 1
+		end
+	end
+end
+
+local function CheckIfMutation(mutation)
+    for i, v in pairs(MutationsArray) do
+        if v == mutation then
+            return true
+        end
+    end
+    return false
+end
+
+local function GetFruitMutations(fruit)
+    local MutationsOnFruitArray = {}
+    for key, value in pairs(fruit:GetAttributes()) do
+        if CheckIfMutation(key) then
+            table.insert(MutationsOnFruitArray, key)
+        end
+    end
+    return MutationsOnFruitArray
+end
+
+local function GetFruitVariant(fruit)
+    if fruit:FindFirstChild("Variant") then
+        return fruit.Variant.Value
+    end
+    return nil
+end
+
+local function GetFruitWeight(fruit)
+    if fruit:FindFirstChild("Weight") then
+        return fruit.Weight.Value
+    end
+    return nil
+end
+
+local function CollectFruit(fruit)
+    local FruitName = fruit.Name
+    local FruitMutationsArray = GetFruitMutations(fruit)
+    local FruitVariant = GetFruitVariant(fruit)
+    local FruitWeight = GetFruitWeight(fruit)
+    PrintArray(FruitMutationsArray)
+
+    -- Check Blocked Plants
+    if configs.AutoCollectBlockedPlants[FruitName] then
+        print("Skipping blocked plant type " .. tostring(FruitName))
+        return false
+    end
+
+    -- Check Blocked Variants
+    if configs.AutoCollectBlockedVariants[FruitVariant] then
+        print("Skipping blocked variant " .. tostring(FruitVariant))
+        return false
+    end
+
+    -- Check Minimum Weight
+    if FruitWeight < configs.AutoCollectMinimumWeight then
+        print("Skipping, not enough fruit weight " .. tostring(FruitWeight))
+        return false
+    end
+
+    -- Check Mutations
+    for i, mutation in pairs(FruitMutationsArray) do
+        if configs.AutoCollectBlockedMutations[mutation] then
+            print("Skipping blocked mutation " .. tostring(mutation))
+            return false
+        end
+    end
+
+    -- Collect after all checks passed
+    print("Collecting")
+    return true
+end
+
+-- Parameters: 
+--      FarmFolder: Local Owning Player's FarmFolder expected
+-- Returns:
+--      N/A
+-- Description:
+--      Loops through plants and fruits and collects non-blocked plants, non-blocked mutations, and non-blocked variants
+
+local AutoCollectFruitsFunction = function()
+	local ImportantFolder = FarmFolder:FindFirstChild("Important")
+    local PlantsPhysicalFolder = ImportantFolder:FindFirstChild("Plants_Physical")
+    
+    for i, plant in pairs(PlantsPhysicalFolder:GetChildren()) do
+        print(plant.Name)
+
+        if configs.AutoCollectBlockedPlants[plant.Name] then
+            print("Skipping blocked plant")
+            continue
+        end
+        
+        if plant:FindFirstChild("Fruits") then
+            for j, fruit in pairs(plant.Fruits:GetChildren()) do
+                CollectFruit(fruit)
+                wait(0.01)
+            end
+        else
+            CollectFruit(plant)
+        end
+        wait(0.01)
+    end
+end
+
+local function EquipFromBackpack(object)
+    if not GetPlayer() then return end
+
+    -- Clear tools from player
+    for i, v in pairs(lp.Character:GetChildren()) do
+        if v.ClassName and v.ClassName == "Tool" then
+            v.Parent = lp:FindFirstChild("Backpack")
+        end
+    end
+
+    wait(0.001)
+    object.Parent = lp.Character
+end
+
+local function FindSeedInBackpack(SeedName)
+    if GetPlayer() and lp:FindFirstChild("Backpack") then
+        for _, object in pairs(lp.Backpack:GetChildren()) do
+            if object and object.Name ~= nil and string.find(object.Name, "Seed") and string.find(object.Name, SeedName) then
+                return object
+            end
+        end
+    end
+    return nil
+end
+
+-- Gets the Center Position of the Farm
+local function GetAutoPlantCenter()
+    local ImportantFolder = FarmFolder:FindFirstChild("Important")
+    local PlantLocations = ImportantFolder:FindFirstChild("Plant_Locations")
+    local objects = PlantLocations:GetChildren()
+    
+    return Vector3.new(objects[1].CFrame.x, objects[1].CFrame.y, objects[1].CFrame.z)
+end
+
+local function PlantSeed(Seed, Location)
+    print("Planted " .. Seed)
+    wait(0.1)
+end
+
+local AutoPlantFunction = function()
+    for i, v in pairs(configs.AutoPlantAllowedSeeds) do
+        if v then
+            local SeedInBackback = FindSeedInBackpack(i)
+            if SeedInBackback then
+                EquipFromBackpack(SeedInBackback)
+                PlantSeed(i, GetAutoPlantCenter())
+            end
+        end
+    end
+end
+
+-- Visual Features --
+
+-- Loop enables the HoneyUI's Visibility
+local AlwaysShowHoney = function()
+    local WaitTime = 0.001
+    while wait(WaitTime) do
+        HoneyUI.Visible = true
+        WaitTime = 1
+    end
+end
+
+local ToggleGearTP = function()
+    GearTPUI.Visible = configs.ToggleGearTP
+end
+
+local TogglePetsTP = function()
+    PetsTPUI.Visible = configs.TogglePetsTP
+end
+
+-- Get Array Functions --
+
+-- Gets all seed/plant names and orders them by price
+local function GetSeedsArray()
+    SeedsArray = {}
+    for i, v in pairs(SeedData) do
+        if (type(v) == "table") then
+            AddToTable_PossibleDuplicate(SeedsArray, i, v)
+        end
+    end
+    SeedsArray = SortArray(SeedsArray)
+    return SeedsArray
 end
 
 -- Gets the seeds in the seed shop from the GUI
@@ -655,35 +1215,11 @@ local function GetGearShopArray()
     return GearShopArray
 end
 
-local function BuyAllEggs()
-    for i=1, 3 do
-        BuyPetEgg:FireServer(i)
-        wait(0.1)
-    end
-end
-
-local AutoBuyEggsFunction = function()
-    local WaitTime = 0.001
-    while wait(WaitTime) do
-        if not configs.AutoBuyEggShop then return end
-
-        for _, object in pairs(EggLocations:GetChildren()) do
-            if configs.EggShopFilter[tostring(object.Name)] then
-                print(object.Name .. " Found!")
-                print("Buying All Eggs")
-                BuyAllEggs()
-                break
-            end
-        end
-        WaitTime = 10
-    end
-end
-
 -- Retrieves the possible egg shop items from PetEggData Module
 -- Returns a sorted array (by Price) of egg names
 local function GetEggsArray()
     local EggsInShopArray = {}
-    for i, v in pairs(PetEggDataMod) do
+    for i, v in pairs(PetEggData) do
         EggsInShopArray[v.Price] = i
     end
 
@@ -692,95 +1228,105 @@ local function GetEggsArray()
     return EggsInShopArray
 end
 
--- Adds possible duplicate keys to table by incrementing key by 1
--- until the table slot is nil
-local function AddToTable_PossibleDuplicate(Table, key, object)
-    local PriceOffset = 0
-    while Table[object.Price + PriceOffset] do
-        PriceOffset = PriceOffset + 1
-    end
-    Table[object.Price + PriceOffset] = tostring(key)
-end
-
-local function PurchaseCosmetic(ItemName)
-    if ItemName:find("Crate") then
-        print("Crate")
-        BuyCosmeticCrate:FireServer(ItemName)
-        return
-    end
-    print("Other Item")
-    BuyCosmeticItem:FireServer(ItemName)
-    return
-end
-
-local function LoopCosmeticLayer(Layer)
-    for _, object in pairs(Layer:GetChildren()) do
-        if object:FindFirstChild("Main") then
-            local ItemName = object.Name
-            if not configs.CosmeticShopFilter[ItemName] then
-                continue
-            end
-            local InStock = (object.Main.Stock.STOCK_TEXT.Text ~= "X0 Stock")
-            if InStock then
-                local ItemStock = object.Main.Stock.STOCK_TEXT.Text:match("%d+")
-                print("Purchasing " .. tostring(ItemStock) .. " of " .. ItemName)
-                for i = 1, ItemStock do
-                    wait(0.1)
-                    PurchaseCosmetic(ItemName)
-                end
-            end
-        end
-        wait(0.1)
-    end
-end
-
-local AutoBuyCosmeticsFunction = function()
-    local WaitTime = 0.001
-    while wait(WaitTime) do
-        if not configs.AutoBuyCosmeticShop then return end
-
-        LoopCosmeticLayer(CosmeticShopTopSegment)
-        LoopCosmeticLayer(CosmeticShopBottomSegment)
-
-        WaitTime = 10
-    end
-end
-
 -- Gets all possible Cosmetic Shop stocked items and crates
 -- Returns a sorted array (by Price) of item names
 local function GetAllPossibleCosmeticItemsArray()
     local AllCosmeticsArray = {}
-    for i, v in pairs(CosmeticCrateShopDataMod) do
+    for i, v in pairs(CosmeticCrateShopData) do
         AddToTable_PossibleDuplicate(AllCosmeticsArray, i, v)
     end
-    for i, v in pairs(CosmeticItemShopDataMod) do
+    for i, v in pairs(CosmeticItemShopData) do
         AddToTable_PossibleDuplicate(AllCosmeticsArray, i, v)
     end
     AllCosmeticsArray = SortArray(AllCosmeticsArray)
     return AllCosmeticsArray
 end
 
-local Page1 = AddGuiPage("Auto Buy")
-local Page2 = AddGuiPage("Auto Farm")
-local Page3 = AddGuiPage("Event")
-local Page4 = AddGuiPage("Visual")
-local Page5 = AddGuiPage("Config")
-local Page5 = AddGuiPage("Config")
-local Page5 = AddGuiPage("Config")
+-- Returns a simple table of the 3 possible variant names
+local function GetVariantsArray()
+    return {"Normal", "Gold", "Rainbow",}
+end
 
-AddPageLeftOptionToggle(Page1, "Seed Shop", AutoBuySeedShopFunction, "AutoBuySeedShop")
-AddPageRightOptionDropdown(Page1, "Seeds", GetSeedShopArray(), configs.SeedShopFilter)
+-- Returns a table, in no particular order, of all mutation names
+local function GetMutationsArray()
+    MutationsArray = {}
+    for i, v in pairs(MutationHandler["MutationNames"]) do
+        table.insert(MutationsArray, tostring(i))
+    end
+    return MutationsArray
+end
 
-AddPageLeftOptionToggle(Page1, "Gear Shop", AutoBuyGearShopFunction, "AutoBuyGearShop")
-AddPageRightOptionDropdown(Page1, "Gear", GetGearShopArray(), configs.GearShopFilter)
+-- Retrieves Data Arrays
+GetSeedsArray()
+GetMutationsArray()
 
-AddPageLeftOptionToggle(Page1, "Egg Shop", AutoBuyEggsFunction, "AutoBuyEggShop")
-AddPageRightOptionDropdown(Page1, "Eggs", GetEggsArray(), configs.EggShopFilter)
+-- Creating Modular GUI --
 
-AddPageLeftOptionToggle(Page1, "Cosmetic Shop", AutoBuyCosmeticsFunction, "AutoBuyCosmeticShop")
-AddPageRightOptionDropdown(Page1, "Cosmetics", GetAllPossibleCosmeticItemsArray(), configs.CosmeticShopFilter)
+-- GUI Function Formatting
+-- AddGuiPage(string : PageName)
+-- AddPageLeftOptionToggle(GuiPageObject : Page, string : ButtonName, function : FunctionToRun, string : ConfigName, bool : NeedsCoroutine?)
+-- NeedsCoroutine? true means the function is a looping function and will be created on a new coroutine
 
-UpdatePageScrollingFrame(Page1)
+local AutoBuyPage = AddGuiPage("Auto Buy")
+local FarmPage = AddGuiPage("Farm")
+local EventPage = AddGuiPage("Event")
+local VisualsPage = AddGuiPage("Visual")
+local ConfigPage = AddGuiPage("Config")
+
+AddPageLeftOptionToggle(AutoBuyPage, "Seed Shop", AutoBuySeedShopFunction, "AutoBuySeedShop", true)
+AddPageRightOptionDropdown(AutoBuyPage, "Seeds", GetSeedShopArray(), configs.SeedShopFilter, Color3.fromRGB(0, 255, 0))
+
+AddPageLeftOptionToggle(AutoBuyPage, "Gear Shop", AutoBuyGearShopFunction, "AutoBuyGearShop", true)
+AddPageRightOptionDropdown(AutoBuyPage, "Gear", GetGearShopArray(), configs.GearShopFilter, Color3.fromRGB(0, 255, 0))
+
+AddPageLeftOptionToggle(AutoBuyPage, "Egg Shop", AutoBuyEggsFunction, "AutoBuyEggShop", true)
+AddPageRightOptionDropdown(AutoBuyPage, "Eggs", GetEggsArray(), configs.EggShopFilter, Color3.fromRGB(0, 255, 0))
+
+AddPageLeftOptionToggle(AutoBuyPage, "Cosmetic Shop", AutoBuyCosmeticsFunction, "AutoBuyCosmeticShop", true)
+AddPageRightOptionDropdown(AutoBuyPage, "Cosmetics", GetAllPossibleCosmeticItemsArray(), configs.CosmeticShopFilter, Color3.fromRGB(0, 255, 0))
+
+AddPageLeftOptionToggle(FarmPage, "Auto Collect", AutoCollectFruitsFunction, "AutoCollect", true)
+AddPageLeftEmpty(FarmPage)
+AddPageLeftEmpty(FarmPage)
+AddPageLeftEmpty(FarmPage)
+AddPageRightOptionDropdown(FarmPage, "Blocked Plants", SeedsArray, configs.AutoCollectBlockedPlants, Color3.fromRGB(255, 0, 0))
+AddPageRightOptionDropdown(FarmPage, "Blocked Variants", GetVariantsArray(), configs.AutoCollectBlockedVariants, Color3.fromRGB(255, 0, 0))
+AddPageRightOptionDropdown(FarmPage, "Blocked Mutations", MutationsArray, configs.AutoCollectBlockedMutations, Color3.fromRGB(255, 0, 0))
+AddPageRightOptionTextbox(FarmPage, "Minimum Value", configs.AutoCollectMinimumValue)
+AddPageRightOptionTextbox(FarmPage, "Minimum Weight", configs.AutoCollectMinimumWeight)
+
+AddPageLeftOptionToggle(FarmPage, "Auto Plant", AutoPlantFunction, "AutoPlant")
+AddPageLeftEmpty(FarmPage)
+AddPageLeftEmpty(FarmPage)
+AddPageRightOptionDropdown(FarmPage, "Allowed Plants", SeedsArray, configs.AutoPlantAllowedSeeds, Color3.fromRGB(0, 255, 0))
+
+AddPageLeftOptionToggle(VisualsPage, "Always Show Honey", AlwaysShowHoney, "AlwaysShowHoney")
+AddPageRightEmpty(VisualsPage)
+AddPageLeftOptionToggle(VisualsPage, "Toggle Gear TP", ToggleGearTP, "ToggleGearTP")
+AddPageRightEmpty(VisualsPage)
+AddPageLeftOptionToggle(VisualsPage, "Toggle Pets TP", TogglePetsTP, "TogglePetsTP")
+AddPageRightEmpty(VisualsPage)
+
+UpdatePageScrollingFrame(AutoBuyPage)
+UpdatePageScrollingFrame(FarmPage)
+UpdatePageScrollingFrame(VisualsPage)
 UpdateTabBarScrollingFrame()
 
-SetDefaultPage(Page1)
+SetDefaultPage(FarmPage)
+
+local function main()
+	print("Entered Main")
+
+    if not GetPlayer() then
+		if not WaitForPlayer() then
+            CloseScript()
+        end
+	end
+
+    if not GetPlayerFarm(lp) then
+        warn("Unable to Find Player's Farm")
+        CloseScript()
+    end
+end
+
+main()
