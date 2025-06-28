@@ -1,8 +1,8 @@
 -- Tested and Working on Latest Version of Delta
+-- Hope you find this helpful :)
 
 -- Services
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local VirtualUserService = game:GetService("VirtualUser")
 local UserInputService = game:GetService("UserInputService")
 local GuiService = game:GetService("GuiService")
 local RunService = game:GetService("RunService")
@@ -60,10 +60,6 @@ local HoneyUI = PlayerGui:WaitForChild("Honey_UI"):WaitForChild("Frame")
 local GearTPUI = PlayerGui:WaitForChild("Teleport_UI"):WaitForChild("Frame"):WaitForChild("Gear")
 local PetsTPUI = PlayerGui:WaitForChild("Teleport_UI"):WaitForChild("Frame"):WaitForChild("Pets")
 
-local mouse = lp:GetMouse()
-local centerX = mouse.ViewSizeX / 2
-local centerY = mouse.ViewSizeY / 2
-
 -- Config Table
 local configs = {
     AutoBuySeedShop = false,
@@ -92,28 +88,36 @@ local configs = {
     WaitTime = 10,
 }
 
--- Gui Variables
-local function GetAutoExecuteConfig()
-    if isfolder and makefolder then
-        if not isfolder("ChillingGAGAutoExecute") then
-            makefolder("ChillingGAGAutoExecute")
-            return false
-        end
+-- Color Scheme --
+local FrameColor = Color3.fromRGB(255, 255, 255)
 
-        if (readfile and isfile and isfile("ChillingGAGAutoExecute/AutoExecute.txt")) then
-            configs = HttpService:JSONDecode(readfile("ChillingGAGAutoExecute/AutoExecute.txt"))
-            return true
-        end
-    end
+-- Gui Variables
+--local function GetAutoExecuteConfig()
+--    if isfolder and makefolder then
+--        if not isfolder("ChillingGAGAutoExecute") then
+--            makefolder("ChillingGAGAutoExecute")
+--            return false
+--        end
+--
+--        if readfile and isfile and isfile("ChillingGAGAutoExecute/AutoExecute.txt") then
+--            configs = HttpService:JSONDecode(readfile("ChillingGAGAutoExecute/AutoExecute.txt"))
+--            return true
+--        end
+--    end
+--    return false
+--end
+
+local function GetAutoExecuteConfig()
     return false
 end
 
+local DefaultPlantCount = 20
 local ActivePage = nil
 local PageCount = 0
 local ActiveDropDown = nil
 local ConfigScrollingFrame = nil
-local SelectedConfigTextLabel = nil
 local AutoExecuteConfig = GetAutoExecuteConfig()
+local SelectedConfig = ""
 if AutoExecuteConfig then
     SelectedConfig = "AutoExecute"
 else
@@ -142,7 +146,7 @@ end
 -- Returns:
 --      true if valid local player character is found
 -- Description:
---      Checks for valid local player character for 15 minutes
+--      Checks for valid local player character repeatedly, for 15 minutes
 
 local function WaitForPlayer()
 	local loopcount = 0
@@ -187,7 +191,7 @@ local function GetPlayerFarm(player)
     return false
 end
 
--- GUI Instances:
+-- Main Gui Components --
 
 local ScreenGui = Instance.new("ScreenGui")
 local MainFrame = Instance.new("Frame")
@@ -200,7 +204,7 @@ local TabBar_Exit = Instance.new("TextButton")
 local TabBar_Minimize = Instance.new("TextButton")
 local DraggableFrame = Instance.new("Frame")
 
--- GUI Properties:
+-- Main Gui Properties --
 
 ScreenGui.Parent = game:WaitForChild("CoreGui")
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
@@ -296,7 +300,7 @@ DraggableFrame.BorderSizePixel = 0
 DraggableFrame.Position = UDim2.new(5.21438835e-07, 0, 0, 0)
 DraggableFrame.Size = UDim2.new(1.00000048, 0, 0.0243000202, 0)
 
--- Logic for making the GUI draggable
+-- Logic for making the Gui draggable
 local dragging
 local dragInput
 local dragStart
@@ -335,41 +339,54 @@ end)
 
 -- Config --
 
+local configfoldername = "ChillingGAG"
 local json
 
-if isfolder and makefolder then
-    if not isfolder("ChillingGAG") then
-        print("Created New Folder")
-        makefolder("ChillingGAG")
-    end
-end
+--if isfolder and makefolder then
+--    if not isfolder(configfoldername) then
+--        print("Created New Folder")
+--        makefolder(configfoldername)
+--    end
+--end
+--
+--if writefile then
+--    json = HttpService:JSONEncode(configs)
+--    writefile(configfoldername .. "/" .. "autosave.txt", json)
+--end
 
-if writefile then
-    json = HttpService:JSONEncode(configs)
-    writefile("ChillingGAG/" .. "autosave.txt", json)
-end
+--local function SaveConfig(filename)
+--    if writefile then
+--        json = HttpService:JSONEncode(configs)
+--        print(json)
+--        writefile(configfoldername .. "/" .. filename .. ".txt", json)
+--    end
+--end
 
-local function SaveConfig(filename)
-    if writefile then
-        json = HttpService:JSONEncode(configs)
-        print(json)
-        writefile("ChillingGAG/" .. filename .. ".txt", json)
-    end
+local function SaveConfig()
+    return nil
 end
+--
+--local function LoadConfig(filename)
+--    if readfile and isfile and isfile(configfoldername .. "/" .. filename .. ".txt") then
+--        configs = HttpService:JSONDecode(readfile(configfoldername .. "/" .. filename .. ".txt"))
+--    end
+--end
 
-local function LoadConfig(filename)
-    if readfile and isfile and isfile("ChillingGAG/" .. filename .. ".txt") then
-        configs = HttpService:JSONDecode(readfile("ChillingGAG/" .. filename .. ".txt"))
-    end
+local function LoadConfig()
+    return nil
 end
+--
+--local function GetConfigsArrayFromFolder()
+--    local ConfigsArray = {}
+--    for i, v in pairs(listfiles(configfoldername)) do
+--        local name = v:split("/")[2]:split(".")[1]
+--        table.insert(ConfigsArray, name)
+--    end
+--    return ConfigsArray
+--end
 
 local function GetConfigsArrayFromFolder()
-    local ConfigsArray = {}
-    for i, v in pairs(listfiles("ChillingGAG")) do
-        local name = v:split("/")[2]:split(".")[1]
-        table.insert(ConfigsArray, name)
-    end
-    return ConfigsArray
+    return nil
 end
 
 local function CloseScript()
@@ -388,7 +405,7 @@ local function CloseScript()
     end
 
     ScreenGui:Destroy()
-    script:Destroy()
+    --script:Destroy()
 end
 
 TabBar_Exit.MouseButton1Down:Connect(function()
@@ -421,96 +438,11 @@ local function UpdatePageScrollingFrame(Page)
     Page.ScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 200 + math.max(Page:GetAttribute("LeftCount"), Page:GetAttribute("RightCount")) * 40)
 end
 
--- Function for adding a Page to the GUI, also adds a Tab for the Page
-local function AddGuiPage(PageName)
-    PageCount = PageCount + 1
-
-    -- Add Tab Button To Top Scrolling Bar
-    local TabBar_Button = Instance.new("TextButton")
-    TabBar_Button.Name = "TabBar_Button" .. tostring(PageCount)
-    TabBar_Button.Parent = TabBarScrollingFrame
-    TabBar_Button.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    TabBar_Button.BackgroundTransparency = 0.400
-    TabBar_Button.BorderColor3 = Color3.fromRGB(0, 0, 0)
-    TabBar_Button.BorderSizePixel = 0
-    TabBar_Button.Position = UDim2.new(0, 0, 0, 0)
-    TabBar_Button.Size = UDim2.new(0, 100, 1, 0)
-    TabBar_Button.Font = Enum.Font.SourceSans
-    TabBar_Button.Text = PageName
-    TabBar_Button.TextColor3 = Color3.fromRGB(0, 0, 0)
-    TabBar_Button.TextScaled = true
-    TabBar_Button.TextSize = 14.000
-    TabBar_Button.TextWrapped = true
-
-    -- Add Page
-    local Page = Instance.new("Frame")
-    Page.Name = "Page" .. tostring(PageCount)
-    Page.Parent = MainFrame
-    Page.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    Page.BackgroundTransparency = 0.600
-    Page.BorderColor3 = Color3.fromRGB(0, 0, 0)
-    Page.BorderSizePixel = 0
-    Page.Position = UDim2.new(0, 0, 0.101850346, 0)
-    Page.Size = UDim2.new(1, 0, 0.898149729, 0)
-    Page.Visible = false
-    Page:SetAttribute("PageNumber", PageCount)
-    Page:SetAttribute("LeftCount", 0)
-    Page:SetAttribute("RightCount", 0)
-
-    -- Add Scrolling Frame For Page
-    local ScrollingFrame = Instance.new("ScrollingFrame")
-    ScrollingFrame.Parent = Page
-    ScrollingFrame.Active = false
-    ScrollingFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    ScrollingFrame.BackgroundTransparency = 1.000
-    ScrollingFrame.BorderColor3 = Color3.fromRGB(0, 0, 0)
-    ScrollingFrame.BorderSizePixel = 0
-    ScrollingFrame.Size = UDim2.new(1, 0, 1, 0)
-    ScrollingFrame.ScrollBarThickness = 5
-    ScrollingFrame.Selectable = false
-    ScrollingFrame.AutomaticSize = Enum.AutomaticSize.None
-    ScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-    ScrollingFrame.ScrollingDirection = Enum.ScrollingDirection.Y
-    ScrollingFrame.ClipsDescendants = true
-
-    -- Add Left Options Frame
-    local LeftOptions = Instance.new("Frame")
-    LeftOptions.Name = "LeftOptions"
-    LeftOptions.Parent = ScrollingFrame
-    LeftOptions.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    LeftOptions.BackgroundTransparency = 1.000
-    LeftOptions.BorderColor3 = Color3.fromRGB(0, 0, 0)
-    LeftOptions.BorderSizePixel = 0
-    LeftOptions.Position = UDim2.new(0, 0, -1.81740887e-07, 0)
-    LeftOptions.Size = UDim2.new(0.5, 0, 1, 0)
-
-    -- Add Right Options Frame
-    local RightOptions = Instance.new("Frame")
-    RightOptions.Name = "RightOptions"
-    RightOptions.Parent = ScrollingFrame
-    RightOptions.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    RightOptions.BackgroundTransparency = 1.000
-    RightOptions.BorderColor3 = Color3.fromRGB(0, 0, 0)
-    RightOptions.BorderSizePixel = 0
-    RightOptions.Position = UDim2.new(0.5, 0, 0, 0)
-    RightOptions.Size = UDim2.new(0.5, 0, 1, 0)
-
-    TabBar_Button.MouseButton1Down:Connect(function()
-        if ActivePage then
-            ActivePage.Visible = false
-        end
-        ActivePage = Page
-        ActivePage.Visible = true
-    end)
-
-    return Page
-end
-
 -- Creates a new Frame Instance meant to hold a button, dropdown, or other interactive features
-local function CreateFeatureHolder(Page, ObjectName, NewParent, PositionCount)
+local function CreateFeatureHolder(InstanceName, InstanceParent, PositionCount)
     local NewHolder = Instance.new("Frame")
-    NewHolder.Name = ObjectName
-    NewHolder.Parent = NewParent
+    NewHolder.Name = InstanceName
+    NewHolder.Parent = InstanceParent
     NewHolder.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     NewHolder.BackgroundTransparency = 1.000
     NewHolder.BorderColor3 = Color3.fromRGB(0, 0, 0)
@@ -521,40 +453,149 @@ local function CreateFeatureHolder(Page, ObjectName, NewParent, PositionCount)
     return NewHolder
 end
 
+local function CreateNewFrame(InstanceName, InstanceParent, InstanceTransparency, InstancePosition, InstanceSize)
+    local NewFrame = Instance.new("Frame")
+    NewFrame.Name = InstanceName
+    NewFrame.Parent = InstanceParent
+    NewFrame.BackgroundColor3 = FrameColor
+    NewFrame.BackgroundTransparency = InstanceTransparency
+    NewFrame.BorderColor3 = Color3.fromRGB(0, 0, 0)
+    NewFrame.BorderSizePixel = 0
+    NewFrame.Position = InstancePosition
+    NewFrame.Size = InstanceSize
+    return NewFrame
+end
+
+local function CreateNewTextLabel(InstanceName, InstanceParent, InstancePosition, InstanceSize, InstanceText, InstanceZIndex)
+    local NewTextLabel = Instance.new("TextLabel")
+    NewTextLabel.Name = InstanceName
+    NewTextLabel.Parent = InstanceParent
+    NewTextLabel.BackgroundColor3 = Color3.fromRGB(236, 236, 236)
+    NewTextLabel.BorderColor3 = Color3.fromRGB(0, 0, 0)
+    NewTextLabel.BorderSizePixel = 0
+    NewTextLabel.Position = InstancePosition
+    NewTextLabel.Size = InstanceSize
+    NewTextLabel.Font = Enum.Font.SourceSans
+    NewTextLabel.Text = InstanceText
+    NewTextLabel.TextColor3 = Color3.fromRGB(0, 0, 0)
+    NewTextLabel.TextScaled = true
+    NewTextLabel.TextSize = 14.000
+    NewTextLabel.TextWrapped = true
+    NewTextLabel.ZIndex = InstanceZIndex
+    return NewTextLabel
+end
+
+local function CreateNewTextButton(InstanceName, InstanceParent, InstanceTransparency, InstancePosition, InstanceSize, InstanceText, InstanceZIndex)
+    local NewTextButton = Instance.new("TextButton")
+    NewTextButton.Name = InstanceName
+    NewTextButton.Parent = InstanceParent
+    NewTextButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    NewTextButton.BackgroundTransparency = InstanceTransparency
+    NewTextButton.BorderColor3 = Color3.fromRGB(0, 0, 0)
+    NewTextButton.BorderSizePixel = 0
+    NewTextButton.Position = InstancePosition
+    NewTextButton.Size = InstanceSize
+    NewTextButton.Font = Enum.Font.SourceSans
+    NewTextButton.Text = InstanceText
+    NewTextButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+    NewTextButton.TextScaled = true
+    NewTextButton.TextSize = 14.000
+    NewTextButton.TextWrapped = true
+    NewTextButton.ZIndex = InstanceZIndex
+    return NewTextButton
+end
+
+local function CreateNewTextBox(InstanceName, InstanceParent, InstanceTransparency, InstancePosition, InstanceSize, InstancePlaceholderText, InstanceText, InstanceZIndex)
+    local NewTextBox = Instance.new("TextBox")
+    NewTextBox.Name = InstanceName
+    NewTextBox.Parent = InstanceParent
+    NewTextBox.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    NewTextBox.BorderColor3 = Color3.fromRGB(0, 0, 0)
+    NewTextBox.BorderSizePixel = 0
+    NewTextBox.BackgroundTransparency = InstanceTransparency
+    NewTextBox.Position = InstancePosition
+    NewTextBox.Size = InstanceSize
+    NewTextBox.Font = Enum.Font.SourceSans
+    NewTextBox.PlaceholderColor3 = Color3.fromRGB(0, 0, 0)
+    NewTextBox.PlaceholderText = InstancePlaceholderText
+    NewTextBox.Text = InstanceText
+    NewTextBox.TextColor3 = Color3.fromRGB(0, 0, 0)
+    NewTextBox.TextSize = 14.000
+    NewTextBox.ZIndex = InstanceZIndex
+    return NewTextBox
+end
+
+local function CreateNewScrollingFrame(InstanceName, InstanceParent, InstanceAutomaticSize, InstanceScrollingDirection)
+    local NewScrollingFrame = Instance.new("ScrollingFrame")
+    NewScrollingFrame.Parent = InstanceParent
+    NewScrollingFrame.Active = false
+    NewScrollingFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    NewScrollingFrame.BackgroundTransparency = 1.000
+    NewScrollingFrame.BorderColor3 = Color3.fromRGB(0, 0, 0)
+    NewScrollingFrame.BorderSizePixel = 0
+    NewScrollingFrame.Size = UDim2.new(1, 0, 1, 0)
+    NewScrollingFrame.ScrollBarThickness = 10
+    NewScrollingFrame.Selectable = false
+    NewScrollingFrame.AutomaticSize = InstanceAutomaticSize
+    NewScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+    NewScrollingFrame.ScrollingDirection = InstanceScrollingDirection
+    NewScrollingFrame.ClipsDescendants = true
+    return NewScrollingFrame
+end
+
+-- Function for adding a Page to the GUI, also adds a Tab for the Page
+local function AddGuiPage(PageName)
+    PageCount = PageCount + 1
+
+    -- Add Tab Button To Top Scrolling Bar
+    local TabBarButton = CreateNewTextButton("TabBarButton" .. tostring(PageCount), TabBarScrollingFrame, 0.4, UDim2.new(0, 0, 0, 0), UDim2.new(0, 100, 1, 0), PageName, 1)
+
+    -- Add Page
+    local Page = CreateNewFrame("Page" .. tostring(PageCount), MainFrame, 0.6, UDim2.new(0, 0, 0.1, 0), UDim2.new(1, 0, 0.9, 0))
+    Page.Visible = false
+    Page:SetAttribute("PageNumber", PageCount)
+    Page:SetAttribute("LeftCount", 0)
+    Page:SetAttribute("RightCount", 0)
+
+    TabBarButton.MouseButton1Down:Connect(function()
+        if ActivePage then
+            ActivePage.Visible = false
+        end
+        ActivePage = Page
+        ActivePage.Visible = true
+    end)
+
+    -- Add Scrolling Frame For Page
+    local ScrollingFrame = CreateNewScrollingFrame("ScrollingFrame", Page, Enum.AutomaticSize.None, Enum.ScrollingDirection.Y)
+
+    -- Add Left Options Frame
+    local LeftOptions = CreateNewFrame("LeftOptions", ScrollingFrame, 1, UDim2.new(0, 0, 0, 0), UDim2.new(0.5, 0, 1, 0))
+
+    -- Add Right Options Frame
+    local RightOptions = CreateNewFrame("RightOptions", ScrollingFrame, 1, UDim2.new(0.5, 0, 0, 0), UDim2.new(0.5, 0, 1, 0))
+
+    return Page
+end
+
 -- Function For Adding A Toggle to the Leftside of the Page
 local function AddPageLeftOptionToggle(Page, ToggleName, Function, ConfigKeyValue, RequiresCoroutine)
     local LeftOptionCount = tonumber(Page:GetAttribute("LeftCount"))
     
     -- Frame to Hold Contents
-    local ToggleHolder = CreateFeatureHolder(Page, "ToggleHolder", Page.ScrollingFrame.LeftOptions, LeftOptionCount)
-
-    -- Red/Green Toggle Indicator
-    local Frame = Instance.new("Frame")
-    Frame.Parent = ToggleHolder
-    Frame.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-    Frame.BorderColor3 = Color3.fromRGB(0, 0, 0)
-    Frame.BorderSizePixel = 0
-    Frame.Position = UDim2.new(0.884373009, 0, 0.261206686, 0)
-    Frame.Size = UDim2.new(0.0576629899, 0, 0.396292746, 0)
+    local ToggleHolder = CreateFeatureHolder("ToggleHolder", Page.ScrollingFrame.LeftOptions, LeftOptionCount)
 
     -- Toggle Button
-    local TextButton = Instance.new("TextButton")
-    TextButton.Parent = ToggleHolder
-    TextButton.BackgroundColor3 = Color3.fromRGB(236, 236, 236)
-    TextButton.BorderColor3 = Color3.fromRGB(0, 0, 0)
-    TextButton.BorderSizePixel = 0
-    TextButton.Position = UDim2.new(0.0399999991, 0, 0.100000001, 0)
-    TextButton.Size = UDim2.new(0.800000012, 0, 0.75, 0)
-    TextButton.Font = Enum.Font.SourceSans
-    TextButton.Text = ToggleName
-    TextButton.TextColor3 = Color3.fromRGB(0, 0, 0)
-    TextButton.TextScaled = true
-    TextButton.TextSize = 14.000
-    TextButton.TextWrapped = true
+    local TextButton = CreateNewTextButton("TextButton", ToggleHolder, 0, UDim2.new(0.05, 0, 0.1, 0), UDim2.new(0.8, 0, 0.75, 0), ToggleName, 1)
+
+    -- Red/Green Toggle Indicator
+    local Frame = CreateNewFrame("Frame", ToggleHolder, 0, UDim2.new(0.88, 0, 0.26, 0), UDim2.new(0.05, 0, 0.4, 0))
 
     -- Button UI Corner
     local UICorner = Instance.new("UICorner")
     UICorner.Parent = TextButton
+
+    UICorner = Instance.new("UICorner")
+    UICorner.Parent = Frame
 
     -- Increment Page Left Options Count Attribute by 1
     Page:SetAttribute("LeftCount", tonumber(Page:GetAttribute("LeftCount")) + 1)
@@ -573,8 +614,10 @@ local function AddPageLeftOptionToggle(Page, ToggleName, Function, ConfigKeyValu
                 configs[ConfigKeyValue] = true
 
                 NewCoroutine = coroutine.create(Function)
-                success = coroutine.resume(NewCoroutine)
-                table.insert(CoroutineArray, NewCoroutine)
+                local success = coroutine.resume(NewCoroutine)
+                if success then
+                    table.insert(CoroutineArray, NewCoroutine)
+                end
             end
         end)
     else
@@ -603,52 +646,20 @@ local function AddPageRightOptionDropdown(Page, DropdownName, DropdownArray, Con
     local ButtonHolder = {}
     local TempCount = 0
 
-    local DropdownHolder = CreateFeatureHolder(Page, "DropdownHolder", Page.ScrollingFrame.RightOptions, RightOptionCount)
+    local DropdownHolder = CreateFeatureHolder("DropdownHolder", Page.ScrollingFrame.RightOptions, RightOptionCount)
 
-    local TextButton = Instance.new("TextButton")
-    TextButton.Parent = DropdownHolder
-    TextButton.BackgroundColor3 = Color3.fromRGB(236, 236, 236)
-    TextButton.BorderColor3 = Color3.fromRGB(0, 0, 0)
-    TextButton.BorderSizePixel = 0
-    TextButton.Position = UDim2.new(0.0400000289, 0, 0.0999998003, 0)
-    TextButton.Size = UDim2.new(0.932641447, 0, 0.75, 0)
-    TextButton.Font = Enum.Font.SourceSans
-    TextButton.Text = "\\/ " .. DropdownName .. " \\/"
-    TextButton.TextColor3 = Color3.fromRGB(0, 0, 0)
-    TextButton.TextScaled = true
-    TextButton.TextSize = 14.000
-    TextButton.TextWrapped = true
-    TextButton.ZIndex = 2
+    local TextButton = CreateNewTextButton("TextButton", DropdownHolder, 0, UDim2.new(0.05, 0, 0.1, 0), UDim2.new(0.9, 0, 0.75, 0), "\\/ " .. DropdownName .. " \\/", 2)
 
     local UICorner = Instance.new("UICorner")
     UICorner.Parent = TextButton
 
-    local DropdownFrame = Instance.new("Frame")
-    DropdownFrame.Name = "DropdownFrame"
-    DropdownFrame.Parent = DropdownHolder
-    DropdownFrame.BackgroundColor3 = Color3.fromRGB(175, 175, 175)
-    DropdownFrame.BorderColor3 = Color3.fromRGB(0, 0, 0)
-    DropdownFrame.BorderSizePixel = 0
-    DropdownFrame.Position = UDim2.new(0.0400001705, 0, 0.849997282, 0)
-    DropdownFrame.Size = UDim2.new(0.932641387, 0, 5, 0)
+    local DropdownFrame = CreateNewFrame("DropdownFrame", DropdownHolder, 0, UDim2.new(0.05, 0, 0.85, 0), UDim2.new(0.9, 0, 5, 0))
     DropdownFrame.Visible = false
 
-    local UICorner2 = Instance.new("UICorner")
-    UICorner2.Parent = DropdownFrame
+    UICorner = Instance.new("UICorner")
+    UICorner.Parent = DropdownFrame
 
-    local ScrollingFrame = Instance.new("ScrollingFrame")
-    ScrollingFrame.Parent = DropdownFrame
-    ScrollingFrame.Active = true
-    ScrollingFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    ScrollingFrame.BackgroundTransparency = 1.000
-    ScrollingFrame.BorderColor3 = Color3.fromRGB(0, 0, 0)
-    ScrollingFrame.BorderSizePixel = 0
-    ScrollingFrame.Size = UDim2.new(1, 0, 1, 0)
-    ScrollingFrame.ScrollBarThickness = 5
-    ScrollingFrame.AutomaticSize = Enum.AutomaticSize.None
-    ScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-    ScrollingFrame.ScrollingDirection = Enum.ScrollingDirection.Y
-    ScrollingFrame.ClipsDescendants = true
+    local ScrollingFrame = CreateNewScrollingFrame("ScrollingFrame", DropdownFrame, Enum.AutomaticSize.None, Enum.ScrollingDirection.Y)
 
     local UIListLayout = Instance.new("UIListLayout")
     UIListLayout.Parent = ScrollingFrame
@@ -673,21 +684,11 @@ local function AddPageRightOptionDropdown(Page, DropdownName, DropdownArray, Con
 
     -- Adding A Select/Deselect All Button First, only for larger arrays
     if #DropdownArray > 5 then
-        local SelectAllButton = Instance.new("TextButton")
-        SelectAllButton.Parent = ScrollingFrame
-        SelectAllButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-        SelectAllButton.BackgroundTransparency = 0.500
-        SelectAllButton.BorderColor3 = Color3.fromRGB(0, 0, 0)
-        SelectAllButton.BorderSizePixel = 0
-        SelectAllButton.Position = UDim2.new(0, 0, 0, 0)
-        SelectAllButton.Size = UDim2.new(1, 0, 0, 30)
-        SelectAllButton.Font = Enum.Font.SourceSans
-        SelectAllButton.TextColor3 = Color3.fromRGB(0, 0, 0)
-        SelectAllButton.TextSize = 14.000
-        SelectAllButton.Text = "Select/Deselect All"
+        
+        local SelectAllButton = CreateNewTextButton("TextButton", ScrollingFrame, 0.5, UDim2.new(0, 0, 0, 0), UDim2.new(1, 0, 0, 30), "Select/Deselect All", 2)
 
-        local UICorner3 = Instance.new("UICorner")
-        UICorner3.Parent = SelectAllButton
+        UICorner = Instance.new("UICorner")
+        UICorner.Parent = SelectAllButton
 
         SelectAllButton.MouseButton1Down:Connect(function()
             local Deselect = false
@@ -716,21 +717,10 @@ local function AddPageRightOptionDropdown(Page, DropdownName, DropdownArray, Con
 
     -- Add Options Inside Dropdown
     for i, v in pairs(DropdownArray) do
-        local NewButton = Instance.new("TextButton")
-        NewButton.Parent = ScrollingFrame
-        NewButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-        NewButton.BackgroundTransparency = 0.500
-        NewButton.BorderColor3 = Color3.fromRGB(0, 0, 0)
-        NewButton.BorderSizePixel = 0
-        NewButton.Position = UDim2.new(0, 0, 0, 0)
-        NewButton.Size = UDim2.new(1, 0, 0, 30)
-        NewButton.Font = Enum.Font.SourceSans
-        NewButton.TextColor3 = Color3.fromRGB(0, 0, 0)
-        NewButton.TextSize = 14.000
-        NewButton.Text = tostring(v)
+        local NewButton = CreateNewTextButton("TextButton", ScrollingFrame, 0.5, UDim2.new(0, 0, 0, 0), UDim2.new(1, 0, 0, 30), tostring(v), 2)
         
-        local UICorner3 = Instance.new("UICorner")
-        UICorner3.Parent = NewButton
+        UICorner = Instance.new("UICorner")
+        UICorner.Parent = NewButton
 
         NewButton.MouseButton1Down:Connect(function()
             local ButtonName = tostring(NewButton.Text)
@@ -760,52 +750,20 @@ local function AddPageRightOptionDropdownTextbox(Page, DropdownName, DropdownArr
     local BoxHolder = {}
     local TempCount = 0
 
-    local DropdownHolder = CreateFeatureHolder(Page, "DropdownHolder", Page.ScrollingFrame.RightOptions, RightOptionCount)
+    local DropdownHolder = CreateFeatureHolder("DropdownHolder", Page.ScrollingFrame.RightOptions, RightOptionCount)
 
-    local TextButton = Instance.new("TextButton")
-    TextButton.Parent = DropdownHolder
-    TextButton.BackgroundColor3 = Color3.fromRGB(236, 236, 236)
-    TextButton.BorderColor3 = Color3.fromRGB(0, 0, 0)
-    TextButton.BorderSizePixel = 0
-    TextButton.Position = UDim2.new(0.0400000289, 0, 0.0999998003, 0)
-    TextButton.Size = UDim2.new(0.932641447, 0, 0.75, 0)
-    TextButton.Font = Enum.Font.SourceSans
-    TextButton.Text = "\\/ " .. DropdownName .. " \\/"
-    TextButton.TextColor3 = Color3.fromRGB(0, 0, 0)
-    TextButton.TextScaled = true
-    TextButton.TextSize = 14.000
-    TextButton.TextWrapped = true
-    TextButton.ZIndex = 2
+    local TextButton = CreateNewTextButton("TextButton", DropdownHolder, 0, UDim2.new(0.05, 0, 0.1, 0), UDim2.new(0.9, 0, 0.75, 0), "\\/ " .. DropdownName .. " \\/", 2)
 
     local UICorner = Instance.new("UICorner")
     UICorner.Parent = TextButton
 
-    local DropdownFrame = Instance.new("Frame")
-    DropdownFrame.Name = "DropdownFrame"
-    DropdownFrame.Parent = DropdownHolder
-    DropdownFrame.BackgroundColor3 = Color3.fromRGB(175, 175, 175)
-    DropdownFrame.BorderColor3 = Color3.fromRGB(0, 0, 0)
-    DropdownFrame.BorderSizePixel = 0
-    DropdownFrame.Position = UDim2.new(0.0400001705, 0, 0.849997282, 0)
-    DropdownFrame.Size = UDim2.new(0.932641387, 0, 5, 0)
+    local DropdownFrame = CreateNewFrame("DropdownFrame", DropdownHolder, 0, UDim2.new(0.05, 0, 0.85, 0), UDim2.new(0.9, 0, 5, 0))
     DropdownFrame.Visible = false
 
-    local UICorner2 = Instance.new("UICorner")
-    UICorner2.Parent = DropdownFrame
+    UICorner = Instance.new("UICorner")
+    UICorner.Parent = DropdownFrame
 
-    local ScrollingFrame = Instance.new("ScrollingFrame")
-    ScrollingFrame.Parent = DropdownFrame
-    ScrollingFrame.Active = true
-    ScrollingFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    ScrollingFrame.BackgroundTransparency = 1.000
-    ScrollingFrame.BorderColor3 = Color3.fromRGB(0, 0, 0)
-    ScrollingFrame.BorderSizePixel = 0
-    ScrollingFrame.Size = UDim2.new(1, 0, 1, 0)
-    ScrollingFrame.ScrollBarThickness = 5
-    ScrollingFrame.AutomaticSize = Enum.AutomaticSize.None
-    ScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-    ScrollingFrame.ScrollingDirection = Enum.ScrollingDirection.Y
-    ScrollingFrame.ClipsDescendants = true
+    local ScrollingFrame = CreateNewScrollingFrame("ScrollingFrame", DropdownFrame, Enum.AutomaticSize.None, Enum.ScrollingDirection.Y)
 
     local UIListLayout = Instance.new("UIListLayout")
     UIListLayout.Parent = ScrollingFrame
@@ -830,48 +788,15 @@ local function AddPageRightOptionDropdownTextbox(Page, DropdownName, DropdownArr
 
     -- Adding A Set All Button First, only for larger arrays
     if #DropdownArray > 5 then
-        local NewHolder = Instance.new("Frame")
-        NewHolder.Name = "Frame"
-        NewHolder.Parent = ScrollingFrame
-        NewHolder.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-        NewHolder.BackgroundTransparency = 1.000
-        NewHolder.BorderColor3 = Color3.fromRGB(0, 0, 0)
-        NewHolder.BorderSizePixel = 0
-        NewHolder.Size = UDim2.new(1, 0, 0, 30)
+        local NewHolder = CreateNewFrame("Frame", ScrollingFrame, 1, UDim2.new(0, 0, 0, 0), UDim2.new(1, 0, 0, 30))
         NewHolder.ZIndex = 2
-        NewHolder.Position = UDim2.new(0, 0, 0, 0)
 
-        local SetAllButton = Instance.new("TextButton")
-        SetAllButton.Parent = NewHolder
-        SetAllButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-        SetAllButton.BackgroundTransparency = 0.500
-        SetAllButton.BorderColor3 = Color3.fromRGB(0, 0, 0)
-        SetAllButton.BorderSizePixel = 0
-        SetAllButton.Position = UDim2.new(0, 0, 0, 0)
-        SetAllButton.Size = UDim2.new(.6, 0, 1, 0)
-        SetAllButton.Font = Enum.Font.SourceSans
-        SetAllButton.TextColor3 = Color3.fromRGB(0, 0, 0)
-        SetAllButton.TextSize = 14.000
-        SetAllButton.Text = "Set All"
-        SetAllButton.ZIndex = 3
+        local SetAllButton = CreateNewTextButton("TextButton", NewHolder, 0, UDim2.new(0, 0, 0, 0), UDim2.new(0.6, 0, 1, 0), "Set All", 2)
 
-        local UICorner3 = Instance.new("UICorner")
-        UICorner3.Parent = SetAllButton
+        UICorner = Instance.new("UICorner")
+        UICorner.Parent = SetAllButton
 
-        local TextBox = Instance.new("TextBox")
-        TextBox.Parent = NewHolder
-        TextBox.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-        TextBox.BorderColor3 = Color3.fromRGB(0, 0, 0)
-        TextBox.BorderSizePixel = 0
-        TextBox.Position = UDim2.new(.6, 0, 0, 0)
-        TextBox.Size = UDim2.new(.4, 0, 1, 0)
-        TextBox.Font = Enum.Font.SourceSans
-        TextBox.PlaceholderColor3 = Color3.fromRGB(0, 0, 0)
-        TextBox.PlaceholderText = "20"
-        TextBox.Text = ""
-        TextBox.TextColor3 = Color3.fromRGB(0, 0, 0)
-        TextBox.TextSize = 14.000
-        TextBox.ZIndex = 3
+        local TextBox = CreateNewTextBox("TextBox", NewHolder, 0, UDim2.new(0.6, 0, 0, 0), UDim2.new(0.4, 0, 1, 0), tostring(DefaultPlantCount), "", 3)
 
         TextBox:GetPropertyChangedSignal("Text"):Connect(function()
             local NewText = TextBox.Text
@@ -892,55 +817,22 @@ local function AddPageRightOptionDropdownTextbox(Page, DropdownName, DropdownArr
             end
         end)
 
-        local UICorner4 = Instance.new("UICorner")
-        UICorner4.Parent = TextBox
+        UICorner = Instance.new("UICorner")
+        UICorner.Parent = TextBox
 
         TempCount = TempCount + 1
     end
 
     -- Add Options Inside Dropdown
     for i, v in pairs(DropdownArray) do
-        local NewHolder = Instance.new("Frame")
-        NewHolder.Name = "Frame"
-        NewHolder.Parent = ScrollingFrame
-        NewHolder.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-        NewHolder.BackgroundTransparency = 1.000
-        NewHolder.BorderColor3 = Color3.fromRGB(0, 0, 0)
-        NewHolder.BorderSizePixel = 0
-        NewHolder.Size = UDim2.new(1, 0, 0, 30)
+        local NewHolder = CreateNewFrame("Frame", ScrollingFrame, 1, UDim2.new(0, 0, 0, 0), UDim2.new(1, 0, 0, 30))
         NewHolder.ZIndex = 2
-        NewHolder.Position = UDim2.new(0, 0, 0, 0)
 
-        local NewTextLabel = Instance.new("TextLabel")
-        NewTextLabel.Parent = NewHolder
-        NewTextLabel.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-        NewTextLabel.BackgroundTransparency = 1
-        NewTextLabel.BorderColor3 = Color3.fromRGB(0, 0, 0)
-        NewTextLabel.BorderSizePixel = 0
-        NewTextLabel.Position = UDim2.new(0, 0, 0, 0)
-        NewTextLabel.Size = UDim2.new(.6, 0, 1, 0)
-        NewTextLabel.Font = Enum.Font.SourceSans
-        NewTextLabel.TextColor3 = Color3.fromRGB(0, 0, 0)
-        NewTextLabel.TextSize = 14.000
-        NewTextLabel.Text = tostring(v)
-        NewTextLabel.ZIndex = 3
+        local NewTextLabel = CreateNewTextLabel("TextLabel", NewHolder, UDim2.new(0, 0, 0, 0), UDim2.new(0.6, 0, 1, 0), tostring(v), 3)
 
-        local TextBox = Instance.new("TextBox")
-        TextBox.Parent = NewHolder
-        TextBox.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-        TextBox.BorderColor3 = Color3.fromRGB(0, 0, 0)
-        TextBox.BorderSizePixel = 0
-        TextBox.Position = UDim2.new(.6, 0, 0, 0)
-        TextBox.Size = UDim2.new(.4, 0, 1, 0)
-        TextBox.Font = Enum.Font.SourceSans
-        TextBox.PlaceholderColor3 = Color3.fromRGB(0, 0, 0)
-        TextBox.PlaceholderText = "20"
-        TextBox.Text = ""
-        TextBox.TextColor3 = Color3.fromRGB(0, 0, 0)
-        TextBox.TextSize = 14.000
-        TextBox.ZIndex = 3
+        local TextBox = CreateNewTextBox("TextBox", NewHolder, 0, UDim2.new(0.6, 0, 0, 0), UDim2.new(0.4, 0, 1, 0), tostring(DefaultPlantCount), "", 3)
 
-        configs[ConfigKey][tostring(v)] = 20
+        configs[ConfigKey][tostring(v)] = DefaultPlantCount
 
         TextBox:GetPropertyChangedSignal("Text"):Connect(function()
             local NewText = TextBox.Text
@@ -953,8 +845,8 @@ local function AddPageRightOptionDropdownTextbox(Page, DropdownName, DropdownArr
             configs[ConfigKey][tostring(v)] = tonumber(TextBox.Text)
         end)
 
-        local UICorner4 = Instance.new("UICorner")
-        UICorner4.Parent = TextBox
+        UICorner = Instance.new("UICorner")
+        UICorner.Parent = TextBox
 
         table.insert(BoxHolder, NewHolder)
 
@@ -969,24 +861,10 @@ end
 -- Function For Adding A Textbox to the Rightside of the Page
 local function AddPageRightOptionTextbox(Page, NewPlaceholderText, ConfigKey)
     local RightOptionCount = tonumber(Page:GetAttribute("RightCount"))
-    -- ButtonHolder stores a reference to all of the buttons added in this dropdown
 
-    local DropdownHolder = CreateFeatureHolder(Page, "DropdownHolder", Page.ScrollingFrame.RightOptions, RightOptionCount)
+    local DropdownHolder = CreateFeatureHolder("DropdownHolder", Page.ScrollingFrame.RightOptions, RightOptionCount)
 
-    local TextBox = Instance.new("TextBox")
-    TextBox.Parent = DropdownHolder
-    TextBox.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    TextBox.BorderColor3 = Color3.fromRGB(0, 0, 0)
-    TextBox.BorderSizePixel = 0
-    TextBox.Position = UDim2.new(0, 0, 0, 0)
-    TextBox.Size = UDim2.new(1, 0, 0.75, 0)
-    TextBox.Font = Enum.Font.SourceSans
-    TextBox.PlaceholderColor3 = Color3.fromRGB(0, 0, 0)
-    TextBox.PlaceholderText = NewPlaceholderText
-    TextBox.Text = ""
-    TextBox.TextColor3 = Color3.fromRGB(0, 0, 0)
-    TextBox.TextSize = 14.000
-    TextBox.ZIndex = 2
+    local TextBox = CreateNewTextBox("TextBox", DropdownHolder, 0, UDim2.new(0.05, 0, 0, 0), UDim2.new(.9, 0, 0.75, 0), tostring(NewPlaceholderText), "", 2)
 
     local UICorner = Instance.new("UICorner")
     UICorner.Parent = TextBox
@@ -994,7 +872,7 @@ local function AddPageRightOptionTextbox(Page, NewPlaceholderText, ConfigKey)
     TextBox:GetPropertyChangedSignal("Text"):Connect(function()
         local NewText = TextBox.Text
         -- Remove any non-digit characters
-        local numericText = NewText:gsub("%D", "")
+        local NumericText = NewText:gsub("%D", "")
         if NewText ~= NumericText then
             TextBox.Text = NumericText
         end
@@ -1018,93 +896,61 @@ local function AddPageLeftEmpty(Page)
     Page:SetAttribute("LeftCount", tonumber(Page:GetAttribute("LeftCount")) + 1)
 end
 
+--local function UpdateConfigDropdown()
+--    -- Remove Options
+--    for i, v in pairs(ConfigScrollingFrame:GetChildren()) do
+--        if v.ClassName ~= "UIListLayout" then
+--            v:Destroy()
+--        end
+--    end
+--
+--    local TempCount = 0
+--    -- Add Options Inside Dropdown
+--    for i, v in pairs(GetConfigsArrayFromFolder()) do
+--        local NewButton = CreateNewTextButton("TextButton", ConfigScrollingFrame, 0.5, UDim2.new(0, 0, 0, 0), UDim2.new(1, 0, 0, 30), tostring(v), 2)
+--        
+--        local UICorner = Instance.new("UICorner")
+--        UICorner.Parent = NewButton
+--
+--        NewButton.MouseButton1Down:Connect(function()
+--            local ButtonName = tostring(NewButton.Text)
+--            ConfigScrollingFrame.Parent.Parent.TextButton.Text = ButtonName
+--            SelectedConfig = ButtonName
+--        end)
+--
+--        TempCount = TempCount + 1
+--    end
+--end
+
 local function UpdateConfigDropdown()
-    -- Remove Options
-    for i, v in pairs(ConfigScrollingFrame:GetChildren()) do
-        if v.ClassName ~= "UIListLayout" then
-            v:Destroy()
-        end
-    end
-
-    local TempCount = 0
-    -- Add Options Inside Dropdown
-    for i, v in pairs(GetConfigsArrayFromFolder()) do
-        local NewButton = Instance.new("TextButton")
-        NewButton.Parent = ConfigScrollingFrame
-        NewButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-        NewButton.BackgroundTransparency = 0.500
-        NewButton.BorderColor3 = Color3.fromRGB(0, 0, 0)
-        NewButton.BorderSizePixel = 0
-        NewButton.Position = UDim2.new(0, 0, 0, 0)
-        NewButton.Size = UDim2.new(1, 0, 0, 30)
-        NewButton.Font = Enum.Font.SourceSans
-        NewButton.TextColor3 = Color3.fromRGB(0, 0, 0)
-        NewButton.TextSize = 14.000
-        NewButton.Text = tostring(v)
-        
-        local UICorner3 = Instance.new("UICorner")
-        UICorner3.Parent = NewButton
-
-        NewButton.MouseButton1Down:Connect(function()
-            local ButtonName = tostring(NewButton.Text)
-            ConfigScrollingFrame.Parent.Parent.TextButton.Text = ButtonName
-            SelectedConfig = ButtonName
-        end)
-
-        TempCount = TempCount + 1
-    end
+    return nil
 end
 
 local function SetupConfigPage(Page)
     -- Save Config TextBox
-    local TextBoxHolder = CreateFeatureHolder(Page, "HoldingFrame", Page.ScrollingFrame.RightOptions, 0)
+    local TextBoxHolder = CreateFeatureHolder("HoldingFrame", Page.ScrollingFrame.RightOptions, 0)
 
-    local TextBox = Instance.new("TextBox")
-    TextBox.Parent = TextBoxHolder
-    TextBox.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    TextBox.BorderColor3 = Color3.fromRGB(0, 0, 0)
-    TextBox.BorderSizePixel = 0
-    TextBox.Position = UDim2.new(0.05, 0, 0, 0)
-    TextBox.Size = UDim2.new(0.9, 0, 0.75, 0)
-    TextBox.Font = Enum.Font.SourceSans
-    TextBox.PlaceholderColor3 = Color3.fromRGB(0, 0, 0)
-    TextBox.PlaceholderText = "Config Name"
-    TextBox.Text = ""
-    TextBox.TextColor3 = Color3.fromRGB(0, 0, 0)
-    TextBox.TextSize = 14.000
-    TextBox.ZIndex = 2
+    local TextBox = CreateNewTextBox("TextBox", TextBoxHolder, 0, UDim2.new(0.05, 0, 0, 0), UDim2.new(0.9, 0, 0.75, 0), "Config Name", "", 2)
 
-    UICorner = Instance.new("UICorner")
+    local UICorner = Instance.new("UICorner")
     UICorner.Parent = TextBox
 
     TextBox:GetPropertyChangedSignal("Text"):Connect(function()
         local NewText = TextBox.Text
         -- Remove any non-digit characters
-        local numericText = NewText:gsub("%A", "")
+        local NumericText = NewText:gsub("%A", "")
         if NewText ~= NumericText then
             TextBox.Text = NumericText
         end
     end)
 
-    local SaveConfigButtonHolder = CreateFeatureHolder(Page, "SaveConfigButtonHolder", Page.ScrollingFrame.LeftOptions, 0)
+    local SaveConfigButtonHolder = CreateFeatureHolder("SaveConfigButtonHolder", Page.ScrollingFrame.LeftOptions, 0)
 
     -- Save Config Button
-    local SaveConfigButton = Instance.new("TextButton")
-    SaveConfigButton.Parent = SaveConfigButtonHolder
-    SaveConfigButton.BackgroundColor3 = Color3.fromRGB(236, 236, 236)
-    SaveConfigButton.BorderColor3 = Color3.fromRGB(0, 0, 0)
-    SaveConfigButton.BorderSizePixel = 0
-    SaveConfigButton.Position = UDim2.new(0, 0, 0, 0)
-    SaveConfigButton.Size = UDim2.new(1, 0, 0.75, 0)
-    SaveConfigButton.Font = Enum.Font.SourceSans
-    SaveConfigButton.Text = "Save Config"
-    SaveConfigButton.TextColor3 = Color3.fromRGB(0, 0, 0)
-    SaveConfigButton.TextScaled = true
-    SaveConfigButton.TextSize = 14.000
-    SaveConfigButton.TextWrapped = true
+    local SaveConfigButton = CreateNewTextButton("TextButton", SaveConfigButtonHolder, 0, UDim2.new(0, 0, 0, 0), UDim2.new(1, 0, 0.75, 0), "Save Config", 1)
 
     -- Button UI Corner
-    local UICorner = Instance.new("UICorner")
+    UICorner = Instance.new("UICorner")
     UICorner.Parent = SaveConfigButton
 
     SaveConfigButton.MouseButton1Down:Connect(function()
@@ -1113,22 +959,10 @@ local function SetupConfigPage(Page)
         end
     end)
 
-    local LoadConfigButtonHolder = CreateFeatureHolder(Page, "SaveConfigButtonHolder", Page.ScrollingFrame.LeftOptions, 1)
+    local LoadConfigButtonHolder = CreateFeatureHolder("SaveConfigButtonHolder", Page.ScrollingFrame.LeftOptions, 1)
 
     -- Load Config Button
-    local LoadConfigButton = Instance.new("TextButton")
-    LoadConfigButton.Parent = LoadConfigButtonHolder
-    LoadConfigButton.BackgroundColor3 = Color3.fromRGB(236, 236, 236)
-    LoadConfigButton.BorderColor3 = Color3.fromRGB(0, 0, 0)
-    LoadConfigButton.BorderSizePixel = 0
-    LoadConfigButton.Position = UDim2.new(0, 0, 0, 0)
-    LoadConfigButton.Size = UDim2.new(1, 0, 0.75, 0)
-    LoadConfigButton.Font = Enum.Font.SourceSans
-    LoadConfigButton.Text = "Load Config"
-    LoadConfigButton.TextColor3 = Color3.fromRGB(0, 0, 0)
-    LoadConfigButton.TextScaled = true
-    LoadConfigButton.TextSize = 14.000
-    LoadConfigButton.TextWrapped = true
+    local LoadConfigButton = CreateNewTextButton("TextButton", LoadConfigButtonHolder, 0, UDim2.new(0, 0, 0, 0), UDim2.new(1, 0, 0.75, 0), "Load Config", 1)
 
     -- Button UI Corner
     UICorner = Instance.new("UICorner")
@@ -1139,39 +973,14 @@ local function SetupConfigPage(Page)
     end)
 
     -- Selected Config Label
-    local AutoExecuteConfigTextLabelHolder = CreateFeatureHolder(Page, "DropdownHolder", Page.ScrollingFrame.RightOptions, 2)
+    local AutoExecuteConfigTextLabelHolder = CreateFeatureHolder("DropdownHolder", Page.ScrollingFrame.RightOptions, 2)
 
-    AutoExecuteConfigTextLabel = Instance.new("TextLabel")
-    AutoExecuteConfigTextLabel.Parent = AutoExecuteConfigTextLabelHolder
-    AutoExecuteConfigTextLabel.BackgroundColor3 = Color3.fromRGB(236, 236, 236)
-    AutoExecuteConfigTextLabel.BorderColor3 = Color3.fromRGB(0, 0, 0)
-    AutoExecuteConfigTextLabel.BorderSizePixel = 0
-    AutoExecuteConfigTextLabel.Position = UDim2.new(0.0400000289, 0, 0.0999998003, 0)
-    AutoExecuteConfigTextLabel.Size = UDim2.new(0.932641447, 0, 0.75, 0)
-    AutoExecuteConfigTextLabel.Font = Enum.Font.SourceSans
-    AutoExecuteConfigTextLabel.Text = tostring(SelectedConfig)
-    AutoExecuteConfigTextLabel.TextColor3 = Color3.fromRGB(0, 0, 0)
-    AutoExecuteConfigTextLabel.TextScaled = true
-    AutoExecuteConfigTextLabel.TextSize = 14.000
-    AutoExecuteConfigTextLabel.TextWrapped = true
-    AutoExecuteConfigTextLabel.ZIndex = 2
+    local AutoExecuteConfigTextLabel = CreateNewTextLabel("TextLabel", AutoExecuteConfigTextLabelHolder, UDim2.new(0.05, 0, 0, 0), UDim2.new(0.9, 0, 0.75, 0), tostring(SelectedConfig), 2)
 
     -- Set Auto Execute Config
-    local SetAutoExecuteHolder = CreateFeatureHolder(Page, "SaveConfigButtonHolder", Page.ScrollingFrame.LeftOptions, 2)
+    local SetAutoExecuteHolder = CreateFeatureHolder("SaveConfigButtonHolder", Page.ScrollingFrame.LeftOptions, 2)
 
-    local SetAutoExecuteButton = Instance.new("TextButton")
-    SetAutoExecuteButton.Parent = SetAutoExecuteHolder
-    SetAutoExecuteButton.BackgroundColor3 = Color3.fromRGB(236, 236, 236)
-    SetAutoExecuteButton.BorderColor3 = Color3.fromRGB(0, 0, 0)
-    SetAutoExecuteButton.BorderSizePixel = 0
-    SetAutoExecuteButton.Position = UDim2.new(0, 0, 0, 0)
-    SetAutoExecuteButton.Size = UDim2.new(1, 0, 0.75, 0)
-    SetAutoExecuteButton.Font = Enum.Font.SourceSans
-    SetAutoExecuteButton.Text = "Set as Auto Execute"
-    SetAutoExecuteButton.TextColor3 = Color3.fromRGB(0, 0, 0)
-    SetAutoExecuteButton.TextScaled = true
-    SetAutoExecuteButton.TextSize = 14.000
-    SetAutoExecuteButton.TextWrapped = true
+    local SetAutoExecuteButton = CreateNewTextButton("TextButton", SetAutoExecuteHolder, 0, UDim2.new(0, 0, 0, 0), UDim2.new(1, 0, 0.75, 0), "Set as Auto Execute", 1)
 
     -- Button UI Corner
     UICorner = Instance.new("UICorner")
@@ -1182,52 +991,20 @@ local function SetupConfigPage(Page)
     end)
 
     -- Select Config Dropdown
-    local DropdownHolder = CreateFeatureHolder(Page, "DropdownHolder", Page.ScrollingFrame.RightOptions, 1)
+    local DropdownHolder = CreateFeatureHolder("DropdownHolder", Page.ScrollingFrame.RightOptions, 1)
 
-    local TextButton = Instance.new("TextButton")
-    TextButton.Parent = DropdownHolder
-    TextButton.BackgroundColor3 = Color3.fromRGB(236, 236, 236)
-    TextButton.BorderColor3 = Color3.fromRGB(0, 0, 0)
-    TextButton.BorderSizePixel = 0
-    TextButton.Position = UDim2.new(0.0400000289, 0, 0.0999998003, 0)
-    TextButton.Size = UDim2.new(0.932641447, 0, 0.75, 0)
-    TextButton.Font = Enum.Font.SourceSans
-    TextButton.Text = "\\/ Select Config \\/"
-    TextButton.TextColor3 = Color3.fromRGB(0, 0, 0)
-    TextButton.TextScaled = true
-    TextButton.TextSize = 14.000
-    TextButton.TextWrapped = true
-    TextButton.ZIndex = 2
+    local TextButton = CreateNewTextButton("TextButton", DropdownHolder, 0, UDim2.new(0.05, 0, 0, 0), UDim2.new(.9, 0, 0.75, 0), "\\/ Select Config \\/", 1)
 
     UICorner = Instance.new("UICorner")
     UICorner.Parent = TextButton
 
-    local DropdownFrame = Instance.new("Frame")
-    DropdownFrame.Name = "DropdownFrame"
-    DropdownFrame.Parent = DropdownHolder
-    DropdownFrame.BackgroundColor3 = Color3.fromRGB(175, 175, 175)
-    DropdownFrame.BorderColor3 = Color3.fromRGB(0, 0, 0)
-    DropdownFrame.BorderSizePixel = 0
-    DropdownFrame.Position = UDim2.new(0.0400001705, 0, 0.849997282, 0)
-    DropdownFrame.Size = UDim2.new(0.932641387, 0, 5, 0)
+    local DropdownFrame = CreateNewFrame("DropdownFrame", DropdownHolder, 0, UDim2.new(0.05, 0, 0.85, 0), UDim2.new(0.9, 0, 5, 0))
     DropdownFrame.Visible = false
 
     UICorner = Instance.new("UICorner")
     UICorner.Parent = DropdownFrame
 
-    ConfigScrollingFrame = Instance.new("ScrollingFrame")
-    ConfigScrollingFrame.Parent = DropdownFrame
-    ConfigScrollingFrame.Active = true
-    ConfigScrollingFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    ConfigScrollingFrame.BackgroundTransparency = 1.000
-    ConfigScrollingFrame.BorderColor3 = Color3.fromRGB(0, 0, 0)
-    ConfigScrollingFrame.BorderSizePixel = 0
-    ConfigScrollingFrame.Size = UDim2.new(1, 0, 1, 0)
-    ConfigScrollingFrame.ScrollBarThickness = 5
-    ConfigScrollingFrame.AutomaticSize = Enum.AutomaticSize.None
-    ConfigScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-    ConfigScrollingFrame.ScrollingDirection = Enum.ScrollingDirection.Y
-    ConfigScrollingFrame.ClipsDescendants = true
+    ConfigScrollingFrame = CreateNewScrollingFrame("ScrollingFrame", DropdownFrame, Enum.AutomaticSize.None, Enum.ScrollingDirection.Y)
 
     local UIListLayout = Instance.new("UIListLayout")
     UIListLayout.Parent = ConfigScrollingFrame
@@ -1244,34 +1021,22 @@ local function SetupConfigPage(Page)
             end
             ActiveDropDown = DropdownFrame
             ActiveDropDown.Visible = true
-            UpdateConfigDropdown()
+            --UpdateConfigDropdown()
         end
     end)
 
     -- Delete Config Button
-    local DeleteConfigButtonHolder = CreateFeatureHolder(Page, "SaveConfigButtonHolder", Page.ScrollingFrame.LeftOptions, 3)
+    local DeleteConfigButtonHolder = CreateFeatureHolder("SaveConfigButtonHolder", Page.ScrollingFrame.LeftOptions, 3)
 
-    local DeleteConfigButton = Instance.new("TextButton")
-    DeleteConfigButton.Parent = DeleteConfigButtonHolder
-    DeleteConfigButton.BackgroundColor3 = Color3.fromRGB(236, 236, 236)
-    DeleteConfigButton.BorderColor3 = Color3.fromRGB(0, 0, 0)
-    DeleteConfigButton.BorderSizePixel = 0
-    DeleteConfigButton.Position = UDim2.new(0, 0, 0, 0)
-    DeleteConfigButton.Size = UDim2.new(1, 0, 0.75, 0)
-    DeleteConfigButton.Font = Enum.Font.SourceSans
-    DeleteConfigButton.Text = "Delete Config"
-    DeleteConfigButton.TextColor3 = Color3.fromRGB(0, 0, 0)
-    DeleteConfigButton.TextScaled = true
-    DeleteConfigButton.TextSize = 14.000
-    DeleteConfigButton.TextWrapped = true
+    local DeleteConfigButton = CreateNewTextButton("TextButton", DeleteConfigButtonHolder, 0, UDim2.new(0, 0, 0, 0), UDim2.new(1, 0, 0.75, 0), "Delete Config", 1)
 
     -- Button UI Corner
     UICorner = Instance.new("UICorner")
     UICorner.Parent = DeleteConfigButton
 
-    DeleteConfigButton.MouseButton1Down:Connect(function()
-        
-    end)
+   --DeleteConfigButton.MouseButton1Down:Connect(function()
+   --    
+   --end)
 end
 
 -- AutoBuy Features --
@@ -1327,12 +1092,11 @@ local AutoBuyGearShopFunction = function()
                     local GearStock = object.Main_Frame.Stock_Text.Text:match("%d+")
                     print("Purchasing " .. tostring(GearStock) .. " of " .. GearName)
                     for i = 1, GearStock do
-                        wait(0.1)
                         BuyGearStock:FireServer(GearName)
+                        wait(0.1)
                     end
                 end
             end
-            wait(0.1)
         end
         WaitTime = configs.WaitTime
     end
@@ -1454,7 +1218,7 @@ end
 
 -- Farm Features
 
--- Parameters: 
+-- Parameters:
 --      fruit: A fruit object
 -- Returns:
 --      ProximityPrompt object or nil
@@ -1470,7 +1234,7 @@ local function GetFruitProximityPrompt(fruit)
 	return nil
 end
 
--- Parameters: 
+-- Parameters:
 --      InputString: a raw mutations string
 -- Returns:
 --      Neatly formatted mutations string and mutations array
@@ -1489,7 +1253,7 @@ local function ParseMutations(InputString)
 	return MutationsString, MutationsArray
 end
 
--- Parameters: 
+-- Parameters:
 --      object: any object
 -- Returns:
 --      N/A
@@ -1507,7 +1271,7 @@ local function DestroyEmitters(object)
 	end
 end
 
--- Parameters: 
+-- Parameters:
 --      object: any object
 -- Returns:
 --      N/A
@@ -1525,7 +1289,7 @@ local function EnableEffects(object)
 	end
 end
 
--- Parameters: 
+-- Parameters:
 --      object: any object
 -- Returns:
 --      N/A
@@ -1543,6 +1307,14 @@ local function DisableEffects(object)
 	end
 end
 
+-- Parameters:
+--      string: any string
+-- Returns:
+--      true if the string matches a mutation
+--      false is not
+-- Description:
+--      Checks the given string against all mutation names
+
 local function CheckIfMutation(mutation)
     for i, v in pairs(MutationsArray) do
         if v == mutation then
@@ -1551,6 +1323,14 @@ local function CheckIfMutation(mutation)
     end
     return false
 end
+
+-- Parameters:
+--      object: fruit object
+-- Returns:
+--      Table containing all the mutations on the fruit
+-- Description:
+--      Loops through object's attributes and looks for matching
+--      mutation names, to yield all mutations on object
 
 local function GetFruitMutations(fruit)
     local MutationsOnFruitArray = {}
@@ -1562,6 +1342,14 @@ local function GetFruitMutations(fruit)
     return MutationsOnFruitArray
 end
 
+-- Parameters:
+--      object: fruit object
+-- Returns:
+--      The fruits variant string value
+--      nil if no variant value found
+-- Description:
+--      Returns a fruits variant string value
+
 local function GetFruitVariant(fruit)
     if fruit:FindFirstChild("Variant") then
         return fruit.Variant.Value
@@ -1569,12 +1357,29 @@ local function GetFruitVariant(fruit)
     return nil
 end
 
+-- Parameters:
+--      object: fruit object
+-- Returns:
+--      The fruits weight number value
+--      nil if no weight value found
+-- Description:
+--      Returns a fruits weight number value
+
 local function GetFruitWeight(fruit)
     if fruit:FindFirstChild("Weight") then
         return fruit.Weight.Value
     end
     return nil
 end
+
+-- Parameters:
+--      object: fruit object
+-- Returns:
+--      true if the fruit is collected
+--      false otherwise
+-- Description:
+--      Checks the fruit for selected/blocked plant types, fruit mutations, fruit variant, fruit weight
+--      Collects fruit only if all checks pass
 
 local function CollectFruit(fruit)
     local FruitName = fruit.Name
@@ -1615,7 +1420,7 @@ local function CollectFruit(fruit)
 end
 
 -- Parameters: 
---      FarmFolder: Local Owning Player's FarmFolder expected
+--      N/A
 -- Returns:
 --      N/A
 -- Description:
@@ -1748,14 +1553,16 @@ local AlwaysShowHoney = function()
     local WaitTime = 0.001
     while wait(WaitTime) do
         HoneyUI.Visible = true
-        WaitTime = 1
+        WaitTime = configs.WaitTime
     end
 end
 
+-- Toggles the Gear TP UI
 local ToggleGearTP = function()
     GearTPUI.Visible = configs.ToggleGearTP
 end
 
+-- Toggles the Pets TP UI
 local TogglePetsTP = function()
     PetsTPUI.Visible = configs.TogglePetsTP
 end
@@ -1784,7 +1591,6 @@ local function GetSeedShopArray()
         end
     end
     SeedShopArray = SortArray(SeedShopArray)
-
     return SeedShopArray
 end
 
@@ -1798,7 +1604,6 @@ local function GetGearShopArray()
         end
     end
     GearShopArray = SortArray(GearShopArray)
-
     return GearShopArray
 end
 
@@ -1809,9 +1614,7 @@ local function GetEggsArray()
     for i, v in pairs(PetEggData) do
         EggsInShopArray[v.Price] = i
     end
-
     EggsInShopArray = SortArray(EggsInShopArray)
-
     return EggsInShopArray
 end
 
