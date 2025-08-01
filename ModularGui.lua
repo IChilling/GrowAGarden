@@ -1,4 +1,5 @@
 -- Tested and Working on Latest Version of Delta
+-- Configs not finished yet, everything else should be good and the item lists stay updated automatically
 -- Hope you find this helpful :)
 
 -- Services
@@ -33,13 +34,15 @@ local SeedData = require(Data:WaitForChild("SeedData"))
 local SeedShop = PlayerGui:WaitForChild("Seed_Shop")
 local SeedShopScrollingFrame = SeedShop:WaitForChild("Frame"):WaitForChild("ScrollingFrame")
 local BuySeedStock = ReplicatedStorage.GameEvents.BuySeedStock
+
 local GearShop = PlayerGui:WaitForChild("Gear_Shop")
 local GearShopScrollingFrame = GearShop:WaitForChild("Frame"):WaitForChild("ScrollingFrame")
 local BuyGearStock = ReplicatedStorage.GameEvents.BuyGearStock
-local NPCS = game.Workspace:WaitForChild("NPCS")
-local PetStand = NPCS:WaitForChild("Pet Stand")
-local EggLocations = PetStand:WaitForChild("EggLocations")
+
+local PetShopUI = PlayerGui:WaitForChild("PetShop_UI")
+local PetShopScrollingFrame = PetShopUI:WaitForChild("Frame"):WaitForChild("ScrollingFrame")
 local BuyPetEgg = ReplicatedStorage.GameEvents.BuyPetEgg
+
 local CosmeticShopUI = PlayerGui:WaitForChild("CosmeticShop_UI")
 local CosmeticShopContentFrame = CosmeticShopUI:WaitForChild("CosmeticShop"):WaitForChild("Main"):WaitForChild("Holder"):WaitForChild("Shop"):WaitForChild("ContentFrame")
 local CosmeticShopTopSegment = CosmeticShopContentFrame:WaitForChild("TopSegment")
@@ -126,53 +129,69 @@ end
 
 -- Utility Functions --
 
+local ScreenGui = Instance.new("ScreenGui")
+local function CloseScript()
+    -- End Coroutines
+    for i, v in pairs(CoroutineArray) do
+        if v then
+            coroutine.close(v)
+        end
+    end
+
+    -- Disable Configs
+    for i, v in pairs(configs) do
+        if (v == true) then
+            configs[i] = false
+        end
+    end
+
+    ScreenGui:Destroy()
+    --script:Destroy()
+end
+
 -- Returns:
---      true if valid local player character is found
+--      TRUE if local player character, humanoid, and rootpart are valid
 -- Description:
---      Gets the local player's RootPart and Humanoid
+--      Gets the local player's Humanoid and HumanoidRootPart
 
 local rootpart
 local humanoid
 local function GetPlayer()
-    if lp.Character and lp.Character:FindFirstChild("Humanoid") and lp.Character:FindFirstChild("HumanoidRootPart") then
-        rootpart = lp.Character.HumanoidRootPart
-        humanoid = lp.Character.Humanoid
+    local char = lp.Character
+    if char and char:FindFirstChild("Humanoid") and char.Humanoid.Health > 0 and char:FindFirstChild("HumanoidRootPart") then
+        rootpart = char.HumanoidRootPart
+        humanoid = char.Humanoid
         return true
     end
-	warn("Unable to Find Player in GetPlayer()")
+	warn("GetPlayer: Unable to Find Player")
     return false
 end
 
 -- Returns:
---      true if valid local player character is found
+--      TRUE if local player character, humanoid, and rootpart are valid
 -- Description:
---      Checks for valid local player character repeatedly, for 15 minutes
+--      Repeatedly checks for valid local player character, humanoid, and rootpart
 
 local function WaitForPlayer()
-	local loopcount = 0
-	while true do
-		wait(1)
-        print("Searching For Player Character, Humanoid, and HumanoidRootPart")
+	local loopCount = 0
+    local loopTime = 60*8   -- 8 minutes
+	while task.wait(1) do
+        print("WaitForPlayer: Searching For Player")
             
-        local char = lp.Character
-        if char and char:FindFirstChild("Humanoid") and char.Humanoid.Health > 0 and char:FindFirstChild("HumanoidRootPart") then
-            rootpart = lp.Character.HumanoidRootPart
-            humanoid = lp.Character.Humanoid
-            break
-        end
+        if GetPlayer() then break end
 
-        if loopcount > 60*15 then
-            warn("Waited Fifteen Minutes and Could Not Find Player, Closing Script, please try re-executing.")
+        if loopCount > loopTime then
+            warn("WaitForPlayer: Waited and Could Not Find Player, Closing Script, please try re-executing.")
             break
         end
-		loopcount = loopcount + 1
+		loopCount = loopCount + 1
 	end
 
 	return rootpart ~= nil and humanoid ~= nil
 end
 
 -- Parameters: 
---      player: game.Players.NAME reference
+--      player: Player Object Reference
 -- Returns:
 --      farm folder/directory or nil
 -- Description:
@@ -188,12 +207,37 @@ local function GetPlayerFarm(player)
             return true
         end
     end
+    warn("GetPlayerFarm: Unable to find player farm")
     return false
+end
+
+-- Parameters: 
+--      player: Player Object Reference
+-- Returns:
+--      TRUE if player farm is found
+-- Description:
+--      Repeatedly checks for valid local player character, humanoid, and rootpart
+
+local function WaitForPlayerFarm(player)
+	local loopCount = 0
+    local loopTime = 60*8   -- 8 minutes
+	while task.wait(1) do
+        print("WaitForPlayerFarm: Searching For Player Farm")
+            
+        if GetPlayerFarm(player) then break end
+
+        if loopCount > loopTime then
+            warn("WaitForPlayerFarm: Waited and Could Not Find Player Farm, Closing Script, please try re-executing.")
+            break
+        end
+		loopCount = loopCount + 1
+	end
+
+	return FarmFolder ~= nil
 end
 
 -- Main Gui Components --
 
-local ScreenGui = Instance.new("ScreenGui")
 local MainFrame = Instance.new("Frame")
 local TabBar = Instance.new("Frame")
 local TabBarScrollingFrame = Instance.new("ScrollingFrame")
@@ -387,25 +431,6 @@ end
 
 local function GetConfigsArrayFromFolder()
     return nil
-end
-
-local function CloseScript()
-    -- End Coroutines
-    for i, v in pairs(CoroutineArray) do
-        if v then
-            coroutine.close(v)
-        end
-    end
-
-    -- Disable Configs
-    for i, v in pairs(configs) do
-        if (v == true) then
-            configs[i] = false
-        end
-    end
-
-    ScreenGui:Destroy()
-    --script:Destroy()
 end
 
 TabBar_Exit.MouseButton1Down:Connect(function()
@@ -1045,7 +1070,7 @@ end
 -- Only Buys Selected Seeds
 local AutoBuySeedShopFunction = function()
     local WaitTime = 0.001
-    while wait(WaitTime) do
+    while task.wait(WaitTime) do
         if not configs.AutoBuySeedShop then return end
 
         for _, object in pairs(SeedShopScrollingFrame:GetChildren()) do
@@ -1061,12 +1086,12 @@ local AutoBuySeedShopFunction = function()
                     local SeedStock = object.Main_Frame.Stock_Text.Text:match("%d+")
                     print("Purchasing " .. tostring(SeedStock) .. " of " .. SeedName)
                     for i = 1, SeedStock do
-                        wait(0.1)
+                        task.wait()
                         BuySeedStock:FireServer(SeedName)
                     end
                 end
             end
-            wait(0.1)
+            task.wait()
         end
         WaitTime = configs.WaitTime
     end
@@ -1076,7 +1101,7 @@ end
 -- Only Buys Selected Gear
 local AutoBuyGearShopFunction = function()
     local WaitTime = 0.001
-    while wait(WaitTime) do
+    while task.wait(WaitTime) do
         if not configs.AutoBuyGearShop then return end
 
         for _, object in pairs(GearShopScrollingFrame:GetChildren()) do
@@ -1093,10 +1118,11 @@ local AutoBuyGearShopFunction = function()
                     print("Purchasing " .. tostring(GearStock) .. " of " .. GearName)
                     for i = 1, GearStock do
                         BuyGearStock:FireServer(GearName)
-                        wait(0.1)
+                        task.wait()
                     end
                 end
             end
+            task.wait()
         end
         WaitTime = configs.WaitTime
     end
@@ -1110,6 +1136,14 @@ local function PrintArray(array)
         _string = _string .. v .. ", "
     end
     print(string.sub(_string, 0, -3))
+end
+
+local function ArrayToString(array)
+    local _string = ""
+    for i, v in pairs(array) do
+        _string = _string .. v .. ", "
+    end
+    return string.sub(_string, 0, -3)
 end
 
 -- Adds possible duplicate keys to table by incrementing key by 1
@@ -1140,28 +1174,32 @@ end
 
 -- Features --
 
--- Buys all 3 eggs in shop
-local function BuyAllEggs()
-    for i=1, 3 do
-        BuyPetEgg:FireServer(i)
-        wait(0.1)
-    end
-end
-
--- Loops and Checks if Any of the Eggs are Selected
--- Grabs all eggs even if only 1 is correct
-local AutoBuyEggsFunction = function()
+-- Function For Automatically Purchasing Gear from the Gear Shop
+-- Only Buys Selected Gear
+local AutoBuyEggShopFunction = function()
     local WaitTime = 0.001
-    while wait(WaitTime) do
+    while task.wait(WaitTime) do
         if not configs.AutoBuyEggShop then return end
 
-        for _, object in pairs(EggLocations:GetChildren()) do
-            if configs.EggShopFilter[tostring(object.Name)] then
-                print(object.Name .. " Found!")
-                print("Buying All Eggs")
-                BuyAllEggs()
-                break
+        for _, object in pairs(PetShopScrollingFrame:GetChildren()) do
+            if object:FindFirstChild("Main_Frame") then
+                local EggName = object.Name
+
+                if not configs.EggShopFilter[EggName] then
+                    continue
+                end
+
+                local InStock = (object.Main_Frame.Cost_Text.TEXT.Text ~= "NO STOCK")
+                if InStock then
+                    local EggStock = object.Main_Frame.Stock_Text.Text:match("%d+")
+                    print("Purchasing " .. tostring(EggStock) .. " of " .. EggName)
+                    for i = 1, EggStock do
+                        BuyPetEgg:FireServer(EggName)
+                        task.wait()
+                    end
+                end
             end
+            task.wait()
         end
         WaitTime = configs.WaitTime
     end
@@ -1237,20 +1275,20 @@ end
 -- Parameters:
 --      InputString: a raw mutations string
 -- Returns:
---      Neatly formatted mutations string and mutations array
+--      Formatted mutations string and mutations array
 -- Description:
 --      Uses regex to target patterns that, start with a capital, contain only letters, and
 --      have more than one lowercase trailing character
 
 local function ParseMutations(InputString)
-	local MutationsString = ""
-	local MutationsArray = {}
+	local mutationsString = ""
+	local mutationsArray = {}
 	for word in string.gmatch(InputString, "%f[%a]%u%l+") do
-		table.insert(MutationsArray, word)
-		MutationsString = MutationsString .. " " .. word
+		table.insert(mutationsArray, word)
+		mutationsString = mutationsString .. " " .. word
 	end
 
-	return MutationsString, MutationsArray
+	return mutationsString, mutationsArray
 end
 
 -- Parameters:
@@ -1276,15 +1314,15 @@ end
 -- Returns:
 --      N/A
 -- Description:
---      Restores disabled effects
+--      Disables effects without actually destroying them from the workspace
 
-local function EnableEffects(object)
+local function DisableEffects(object)
 	for _, child in pairs(object:GetChildren()) do
 		if child.ClassName == "ParticleEmitter" then
-			child.Enabled = true
+			child.Enabled = false
 		end
 		if child.Name == "FrozenShell" then
-			child.Transparency = 0.5
+			child.Transparency = 1
 		end
 	end
 end
@@ -1294,15 +1332,15 @@ end
 -- Returns:
 --      N/A
 -- Description:
---      Disables effects
+--      Restores disabled effects
 
-local function DisableEffects(object)
+local function EnableEffects(object)
 	for _, child in pairs(object:GetChildren()) do
 		if child.ClassName == "ParticleEmitter" then
-			child.Enabled = false
+			child.Enabled = true
 		end
 		if child.Name == "FrozenShell" then
-			child.Transparency = 1
+			child.Transparency = 0.5
 		end
 	end
 end
@@ -1333,13 +1371,13 @@ end
 --      mutation names, to yield all mutations on object
 
 local function GetFruitMutations(fruit)
-    local MutationsOnFruitArray = {}
+    local mutationsOnFruitArray = {}
     for key, value in pairs(fruit:GetAttributes()) do
         if CheckIfMutation(key) then
-            table.insert(MutationsOnFruitArray, key)
+            table.insert(mutationsOnFruitArray, key)
         end
     end
-    return MutationsOnFruitArray
+    return mutationsOnFruitArray
 end
 
 -- Parameters:
@@ -1386,7 +1424,14 @@ local function CollectFruit(fruit)
     local FruitMutationsArray = GetFruitMutations(fruit)
     local FruitVariant = GetFruitVariant(fruit)
     local FruitWeight = GetFruitWeight(fruit)
-    PrintArray(FruitMutationsArray)
+
+    print()
+    print("Collecting Fruit")
+    Print("Name: ", FruitName)
+    Print("Variant: ", FruitVariant)
+    Print("Weight: ", FruitWeight)
+    Print("Mutations: ", ArrayToString(FruitMutationsArray))
+    print()
 
     -- Check Blocked Plants
     if configs.AutoCollectBlockedPlants[FruitName] then
@@ -1451,20 +1496,24 @@ local AutoCollectFruitsFunction = function()
 end
 
 local function UnequipAllFromBackpack()
+    local backpack = lp:FindFirstChild("Backpack")
     for i, v in pairs(lp.Character:GetChildren()) do
         if v.ClassName and v.ClassName == "Tool" then
-            v.Parent = lp:FindFirstChild("Backpack")
+            v.Parent = backpack
         end
     end
 end
 
 local function EquipFromBackpack(object)
-    if not GetPlayer() then return end
+    if not GetPlayer() then
+        warn("EquipFromBackpack: Unable to get valid player")
+        return
+    end
 
     -- Clear tools from player
     UnequipAllFromBackpack()
 
-    wait(0.001)
+    task.wait(0.01)
     object.Parent = lp.Character
 end
 
@@ -1551,7 +1600,7 @@ end
 -- Loop enables the HoneyUI's Visibility
 local AlwaysShowHoney = function()
     local WaitTime = 0.001
-    while wait(WaitTime) do
+    while task.wait(WaitTime) do
         HoneyUI.Visible = true
         WaitTime = configs.WaitTime
     end
@@ -1670,7 +1719,7 @@ AddPageRightOptionDropdown(AutoBuyPage, "Seeds", GetSeedShopArray(), configs.See
 AddPageLeftOptionToggle(AutoBuyPage, "Gear Shop", AutoBuyGearShopFunction, "AutoBuyGearShop", true)
 AddPageRightOptionDropdown(AutoBuyPage, "Gear", GetGearShopArray(), configs.GearShopFilter, Color3.fromRGB(0, 255, 0))
 
-AddPageLeftOptionToggle(AutoBuyPage, "Egg Shop", AutoBuyEggsFunction, "AutoBuyEggShop", true)
+AddPageLeftOptionToggle(AutoBuyPage, "Egg Shop", AutoBuyEggShopFunction, "AutoBuyEggShop", true)
 AddPageRightOptionDropdown(AutoBuyPage, "Eggs", GetEggsArray(), configs.EggShopFilter, Color3.fromRGB(0, 255, 0))
 
 AddPageLeftOptionToggle(AutoBuyPage, "Cosmetic Shop", AutoBuyCosmeticsFunction, "AutoBuyCosmeticShop", true)
@@ -1718,8 +1767,9 @@ local function main()
 	end
 
     if not GetPlayerFarm(lp) then
-        warn("Unable to Find Player's Farm")
-        CloseScript()
+        if not WaitForPlayerFarm(lp) then
+            CloseScript()
+        end
     end
 end
 
