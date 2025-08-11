@@ -1,5 +1,5 @@
 if getgenv().ChillingAntiAFK then
-  warn("Chilling's AntiAFK is already running")
+  warn("[Chilling's AntiAFK]: Already running!")
   return
 end
 
@@ -20,7 +20,7 @@ local function main()
   end)
 
   getgenv().ChillingAntiAFK = true
-  print("Started Chilling's AntiAFK")
+  print("[Chilling's AntiAFK]: Started")
 end
 
 main()
